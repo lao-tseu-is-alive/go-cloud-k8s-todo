@@ -1,4 +1,4 @@
-// Package todo_app provides Connect RPC handlers for the TodoService.
+// Package todo provides Connect RPC handlers for the TodoService.
 package todo
 
 import (
@@ -9,8 +9,8 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5"
-	todo_appv1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1"
-	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1/todo_appv1connect"
+	todov1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1"
+	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1/todov1connect"
 )
 
 // TodoConnectServer implements the TodoServiceHandler interface.
@@ -20,7 +20,7 @@ type TodoConnectServer struct {
 	Log             *slog.Logger
 
 	// Embed the unimplemented handler for forward compatibility
-	todo_appv1connect.UnimplementedTodoServiceHandler
+	todov1connect.UnimplementedTodoServiceHandler
 }
 
 // NewTodoConnectServer creates a new TodoConnectServer.
@@ -65,11 +65,11 @@ func (s *TodoConnectServer) mapErrorToConnect(err error) *connect.Error {
 // TodoService RPC Methods
 // =============================================================================
 
-// List returns a list of todo_apps
+// List returns a list of todos
 func (s *TodoConnectServer) List(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.ListRequest],
-) (*connect.Response[todo_appv1.ListResponse], error) {
+	req *connect.Request[todov1.ListRequest],
+) (*connect.Response[todov1.ListResponse], error) {
 	s.Log.Info("Connect: List called")
 
 	// User info injected by AuthInterceptor
@@ -109,17 +109,17 @@ func (s *TodoConnectServer) List(
 	}
 
 	// Convert to proto and return
-	response := &todo_appv1.ListResponse{
+	response := &todov1.ListResponse{
 		Todos: DomainTodoListSliceToProto(list),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Create creates a new todo_app
+// Create creates a new todo
 func (s *TodoConnectServer) Create(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.CreateRequest],
-) (*connect.Response[todo_appv1.CreateResponse], error) {
+	req *connect.Request[todov1.CreateRequest],
+) (*connect.Response[todov1.CreateResponse], error) {
 	s.Log.Info("Connect: Create called")
 
 	// User info injected by AuthInterceptor
@@ -129,7 +129,7 @@ func (s *TodoConnectServer) Create(
 	// Convert proto to domain
 	protoTodo := req.Msg.Todo
 	if protoTodo == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("todo_app is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("todo is required"))
 	}
 
 	domainTodo, err := ProtoTodoToDomain(protoTodo)
@@ -144,17 +144,17 @@ func (s *TodoConnectServer) Create(
 	}
 
 	// Convert back to proto
-	response := &todo_appv1.CreateResponse{
+	response := &todov1.CreateResponse{
 		Todo: DomainTodoToProto(createdTodo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Get retrieves a todo_app by ID
+// Get retrieves a todo by ID
 func (s *TodoConnectServer) Get(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.GetRequest],
-) (*connect.Response[todo_appv1.GetResponse], error) {
+	req *connect.Request[todov1.GetRequest],
+) (*connect.Response[todov1.GetResponse], error) {
 	s.Log.Info("Connect: Get called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -162,28 +162,28 @@ func (s *TodoConnectServer) Get(
 	s.Log.Info("Get", "userId", userId)
 
 	// Parse UUID
-	todo_appId, err := uuid.Parse(req.Msg.Id)
+	todoId, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo_app ID format"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo ID format"))
 	}
 
 	// Call business logic
-	todo_app, err := s.BusinessService.Get(ctx, todo_appId)
+	todo, err := s.BusinessService.Get(ctx, todoId)
 	if err != nil {
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.GetResponse{
-		Todo: DomainTodoToProto(todo_app),
+	response := &todov1.GetResponse{
+		Todo: DomainTodoToProto(todo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Update updates a todo_app
+// Update updates a todo
 func (s *TodoConnectServer) Update(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.UpdateRequest],
-) (*connect.Response[todo_appv1.UpdateResponse], error) {
+	req *connect.Request[todov1.UpdateRequest],
+) (*connect.Response[todov1.UpdateResponse], error) {
 	s.Log.Info("Connect: Update called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -191,15 +191,15 @@ func (s *TodoConnectServer) Update(
 	s.Log.Info("Update", "userId", userId)
 
 	// Parse UUID
-	todo_appId, err := uuid.Parse(req.Msg.Id)
+	todoId, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo_app ID format"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo ID format"))
 	}
 
 	// Convert proto to domain
 	protoTodo := req.Msg.Todo
 	if protoTodo == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("todo_app data is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("todo data is required"))
 	}
 
 	domainTodo, err := ProtoTodoToDomain(protoTodo)
@@ -208,22 +208,22 @@ func (s *TodoConnectServer) Update(
 	}
 
 	// Call business logic
-	updatedTodo, err := s.BusinessService.Update(ctx, userId, todo_appId, *domainTodo)
+	updatedTodo, err := s.BusinessService.Update(ctx, userId, todoId, *domainTodo)
 	if err != nil {
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.UpdateResponse{
+	response := &todov1.UpdateResponse{
 		Todo: DomainTodoToProto(updatedTodo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Delete deletes a todo_app
+// Delete deletes a todo
 func (s *TodoConnectServer) Delete(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.DeleteRequest],
-) (*connect.Response[todo_appv1.DeleteResponse], error) {
+	req *connect.Request[todov1.DeleteRequest],
+) (*connect.Response[todov1.DeleteResponse], error) {
 	s.Log.Info("Connect: Delete called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -231,25 +231,25 @@ func (s *TodoConnectServer) Delete(
 	s.Log.Info("Delete", "userId", userId)
 
 	// Parse UUID
-	todo_appId, err := uuid.Parse(req.Msg.Id)
+	todoId, err := uuid.Parse(req.Msg.Id)
 	if err != nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo_app ID format"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("invalid todo ID format"))
 	}
 
 	// Call business logic
-	err = s.BusinessService.Delete(ctx, userId, todo_appId)
+	err = s.BusinessService.Delete(ctx, userId, todoId)
 	if err != nil {
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	return connect.NewResponse(&todo_appv1.DeleteResponse{}), nil
+	return connect.NewResponse(&todov1.DeleteResponse{}), nil
 }
 
-// Search returns todo_apps based on search criteria
+// Search returns todos based on search criteria
 func (s *TodoConnectServer) Search(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.SearchRequest],
-) (*connect.Response[todo_appv1.SearchResponse], error) {
+	req *connect.Request[todov1.SearchRequest],
+) (*connect.Response[todov1.SearchResponse], error) {
 	s.Log.Info("Connect: Search called")
 
 	// User info injected by AuthInterceptor
@@ -288,17 +288,17 @@ func (s *TodoConnectServer) Search(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.SearchResponse{
+	response := &todov1.SearchResponse{
 		Todos: DomainTodoListSliceToProto(list),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Count returns the number of todo_apps
+// Count returns the number of todos
 func (s *TodoConnectServer) Count(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.CountRequest],
-) (*connect.Response[todo_appv1.CountResponse], error) {
+	req *connect.Request[todov1.CountRequest],
+) (*connect.Response[todov1.CountResponse], error) {
 	s.Log.Info("Connect: Count called")
 
 	// User info injected by AuthInterceptor
@@ -328,17 +328,17 @@ func (s *TodoConnectServer) Count(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.CountResponse{
+	response := &todov1.CountResponse{
 		Count: count,
 	}
 	return connect.NewResponse(response), nil
 }
 
-// GeoJson returns a GeoJSON representation of todo_apps
+// GeoJson returns a GeoJSON representation of todos
 func (s *TodoConnectServer) GeoJson(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.GeoJsonRequest],
-) (*connect.Response[todo_appv1.GeoJsonResponse], error) {
+	req *connect.Request[todov1.GeoJsonRequest],
+) (*connect.Response[todov1.GeoJsonResponse], error) {
 	s.Log.Info("Connect: GeoJson called")
 
 	// User info injected by AuthInterceptor
@@ -374,17 +374,17 @@ func (s *TodoConnectServer) GeoJson(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.GeoJsonResponse{
+	response := &todov1.GeoJsonResponse{
 		Result: result,
 	}
 	return connect.NewResponse(response), nil
 }
 
-// ListByExternalId returns todo_apps filtered by external ID
+// ListByExternalId returns todos filtered by external ID
 func (s *TodoConnectServer) ListByExternalId(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.ListByExternalIdRequest],
-) (*connect.Response[todo_appv1.ListByExternalIdResponse], error) {
+	req *connect.Request[todov1.ListByExternalIdRequest],
+) (*connect.Response[todov1.ListByExternalIdResponse], error) {
 	s.Log.Info("Connect: ListByExternalId called", "externalId", req.Msg.ExternalId)
 
 	// User info injected by AuthInterceptor
@@ -408,10 +408,10 @@ func (s *TodoConnectServer) ListByExternalId(
 
 	// Return NotFound if no results (matching HTTP handler behavior)
 	if len(list) == 0 {
-		return nil, connect.NewError(connect.CodeNotFound, errors.New("no todo_apps found with this external ID"))
+		return nil, connect.NewError(connect.CodeNotFound, errors.New("no todos found with this external ID"))
 	}
 
-	response := &todo_appv1.ListByExternalIdResponse{
+	response := &todov1.ListByExternalIdResponse{
 		Todos: DomainTodoListSliceToProto(list),
 	}
 	return connect.NewResponse(response), nil

@@ -36,10 +36,10 @@ func NewPgxDB(ctx context.Context, db database.DB, log *slog.Logger) (Storage, e
 	}
 
 	if numberOfTypeTodos > 0 {
-		log.Info("database contains records in todo.type_todo_app", "count", numberOfTypeTodos)
+		log.Info("database contains records in todo.type_todo", "count", numberOfTypeTodos)
 	} else {
-		log.Warn("todo.type_todo_app is empty - it should contain at least one row")
-		return nil, fmt.Errorf("«todo.type_todo_app» contains %w should not be empty", numberOfTypeTodos)
+		log.Warn("todo.type_todo is empty - it should contain at least one row")
+		return nil, fmt.Errorf("«todo.type_todo» contains %w should not be empty", numberOfTypeTodos)
 	}
 
 	return &psql, err
@@ -84,7 +84,7 @@ func (db *PGX) GeoJson(ctx context.Context, offset, limit int, params GeoJsonPar
 	return *mayBeResultIsNull, nil
 }
 
-// List returns the list of existing todo_apps with the given offset and limit.
+// List returns the list of existing todos with the given offset and limit.
 func (db *PGX) List(ctx context.Context, offset, limit int, params ListParams) ([]*TodoList, error) {
 	db.log.Debug("trace: entering List", "offset", offset, "limit", limit)
 	if params.Type != nil {
@@ -105,11 +105,11 @@ func (db *PGX) List(ctx context.Context, offset, limit int, params ListParams) (
 	if params.Validated != nil {
 		db.log.Debug("params.Validated is not nil ")
 		isValidated := *params.Validated
-		listTodos += " AND validated = coalesce($6, validated) " + todo_appListOrderBy
+		listTodos += " AND validated = coalesce($6, validated) " + todoListOrderBy
 		err = pgxscan.Select(ctx, db.Conn, &res, listTodos,
 			limit, offset, &params.Type, &params.CreatedBy, isInactive, isValidated)
 	} else {
-		listTodos += todo_appListOrderBy
+		listTodos += todoListOrderBy
 		err = pgxscan.Select(ctx, db.Conn, &res, listTodos,
 			limit, offset, &params.Type, &params.CreatedBy, isInactive)
 	}
@@ -124,11 +124,11 @@ func (db *PGX) List(ctx context.Context, offset, limit int, params ListParams) (
 	return res, nil
 }
 
-// ListByExternalId returns the list of existing todo_apps having given externalId with the given offset and limit.
+// ListByExternalId returns the list of existing todos having given externalId with the given offset and limit.
 func (db *PGX) ListByExternalId(ctx context.Context, offset, limit int, externalId int) ([]*TodoList, error) {
 	db.log.Debug("trace: entering ListByExternalId", "externalId", externalId)
 	var res []*TodoList
-	listByExternalIdTodos := baseTodoListQuery + listByExternalIdTodosCondition + todo_appListOrderBy
+	listByExternalIdTodos := baseTodoListQuery + listByExternalIdTodosCondition + todoListOrderBy
 	err := pgxscan.Select(ctx, db.Conn, &res, listByExternalIdTodos, limit, offset, externalId)
 	if err != nil {
 		db.log.Error("ListByExternalId failed", "error", err)
@@ -151,21 +151,21 @@ func (db *PGX) Search(ctx context.Context, offset, limit int, params SearchParam
 	if params.Keywords != nil {
 		searchTodos += " AND text_search @@ plainto_tsquery('french', unaccent($6))"
 		if params.Validated != nil {
-			searchTodos += " AND validated = coalesce($7, validated) " + todo_appListOrderBy
+			searchTodos += " AND validated = coalesce($7, validated) " + todoListOrderBy
 			err = pgxscan.Select(ctx, db.Conn, &res, searchTodos,
 				limit, offset, &params.Type, &params.CreatedBy, &params.Inactivated, &params.Keywords, &params.Validated)
 		} else {
-			searchTodos += todo_appListOrderBy
+			searchTodos += todoListOrderBy
 			err = pgxscan.Select(ctx, db.Conn, &res, searchTodos,
 				limit, offset, &params.Type, &params.CreatedBy, &params.Inactivated, &params.Keywords)
 		}
 	} else {
 		if params.Validated != nil {
-			searchTodos += " AND validated = coalesce($6, validated) " + todo_appListOrderBy
+			searchTodos += " AND validated = coalesce($6, validated) " + todoListOrderBy
 			err = pgxscan.Select(ctx, db.Conn, &res, searchTodos,
 				limit, offset, &params.Type, &params.CreatedBy, &params.Inactivated, &params.Validated)
 		} else {
-			searchTodos += todo_appListOrderBy
+			searchTodos += todoListOrderBy
 			err = pgxscan.Select(ctx, db.Conn, &res, searchTodos,
 				limit, offset, &params.Type, &params.CreatedBy, &params.Inactivated)
 		}
@@ -182,7 +182,7 @@ func (db *PGX) Search(ctx context.Context, offset, limit int, params SearchParam
 	return res, nil
 }
 
-// Get will retrieve the todo_app with given id
+// Get will retrieve the todo with given id
 func (db *PGX) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	db.log.Debug("trace: entering Get", "id", id)
 	res := &Todo{}
@@ -198,7 +198,7 @@ func (db *PGX) Get(ctx context.Context, id uuid.UUID) (*Todo, error) {
 	return res, nil
 }
 
-// Exist returns true only if a todo_app with the specified id exists in store.
+// Exist returns true only if a todo with the specified id exists in store.
 func (db *PGX) Exist(ctx context.Context, id uuid.UUID) bool {
 	db.log.Debug("trace: entering Exist", "id", id)
 	count, err := db.dbi.GetQueryInt(ctx, existTodo, id)
@@ -215,7 +215,7 @@ func (db *PGX) Exist(ctx context.Context, id uuid.UUID) bool {
 	}
 }
 
-// Count returns the number of todo_app stored in DB
+// Count returns the number of todo stored in DB
 func (db *PGX) Count(ctx context.Context, params CountParams) (int32, error) {
 	db.log.Debug("trace : entering Count()")
 	var (
@@ -287,12 +287,12 @@ func (db *PGX) Create(ctx context.Context, t Todo) (*Todo, error) {
 	// if we get to here all is good, so let's retrieve a fresh copy to send it back
 	createdTodo, err := db.Get(ctx, t.Id)
 	if err != nil {
-		return nil, fmt.Errorf("error %w: todo_app was created, but can not be retrieved", err)
+		return nil, fmt.Errorf("error %w: todo was created, but can not be retrieved", err)
 	}
 	return createdTodo, nil
 }
 
-// Update the todo_app stored in DB with given id and other information in struct
+// Update the todo stored in DB with given id and other information in struct
 func (db *PGX) Update(ctx context.Context, id uuid.UUID, t Todo) (*Todo, error) {
 	db.log.Debug("trace: entering Update", "id", t.Id)
 
@@ -314,27 +314,27 @@ func (db *PGX) Update(ctx context.Context, id uuid.UUID, t Todo) (*Todo, error) 
 	// if we get to here all is good, so let's retrieve a fresh copy to send it back
 	updatedTodo, err := db.Get(ctx, t.Id)
 	if err != nil {
-		return nil, fmt.Errorf("error %w: todo_app was updated, but can not be retrieved", err)
+		return nil, fmt.Errorf("error %w: todo was updated, but can not be retrieved", err)
 	}
 	return updatedTodo, nil
 }
 
-// Delete the todo_app stored in DB with given id
+// Delete the todo stored in DB with given id
 func (db *PGX) Delete(ctx context.Context, id uuid.UUID, userId int32) error {
 	db.log.Debug("trace: entering Delete", "id", id)
 	rowsAffected, err := db.dbi.ExecActionQuery(ctx, deleteTodo, userId, id)
 	if err != nil {
-		db.log.Error("todo_app could not be deleted", "id", id, "error", err)
-		return fmt.Errorf("todo_app could not be deleted: %w", err)
+		db.log.Error("todo could not be deleted", "id", id, "error", err)
+		return fmt.Errorf("todo could not be deleted: %w", err)
 	}
 	if rowsAffected < 1 {
-		db.log.Error("todo_app was not deleted", "id", id)
-		return fmt.Errorf("todo_app was not marked for deletetion")
+		db.log.Error("todo was not deleted", "id", id)
+		return fmt.Errorf("todo was not marked for deletetion")
 	}
 	return nil
 }
 
-// IsTodoActive returns true if the todo_app with the specified id has the inactivated attribute set to false
+// IsTodoActive returns true if the todo with the specified id has the inactivated attribute set to false
 func (db *PGX) IsTodoActive(ctx context.Context, id uuid.UUID) bool {
 	db.log.Debug("trace: entering IsTodoActive", "id", id)
 	count, err := db.dbi.GetQueryInt(ctx, isActiveTodo, id)
@@ -351,7 +351,7 @@ func (db *PGX) IsTodoActive(ctx context.Context, id uuid.UUID) bool {
 	}
 }
 
-// IsUserOwner returns true only if userId is the creator of the record (owner) of this todo_app in store.
+// IsUserOwner returns true only if userId is the creator of the record (owner) of this todo in store.
 func (db *PGX) IsUserOwner(ctx context.Context, id uuid.UUID, userId int32) bool {
 	db.log.Debug("trace: entering IsUserOwner", "id", id, "userId", userId)
 	count, err := db.dbi.GetQueryInt(ctx, existTodoOwnedBy, id, userId)
@@ -410,7 +410,7 @@ func (db *PGX) UpdateTypeTodo(ctx context.Context, id int32, tt TypeTodo) (*Type
 	// if we get to here all is good, so let's retrieve a fresh copy to send it back
 	updatedTypeTodo, err := db.GetTypeTodo(ctx, id)
 	if err != nil {
-		return nil, fmt.Errorf("error %w: todo_app was updated, but can not be retrieved", err)
+		return nil, fmt.Errorf("error %w: todo was updated, but can not be retrieved", err)
 	}
 	return updatedTypeTodo, nil
 }
@@ -420,12 +420,12 @@ func (db *PGX) DeleteTypeTodo(ctx context.Context, id int32, userId int32) error
 	db.log.Debug("trace: entering DeleteTypeTodo", "id", id)
 	rowsAffected, err := db.dbi.ExecActionQuery(ctx, deleteTypeTodo, userId, id)
 	if err != nil {
-		db.log.Error("typetodo_app could not be deleted", "id", id, "error", err)
-		return fmt.Errorf("typetodo_app could not be deleted: %w", err)
+		db.log.Error("typetodo could not be deleted", "id", id, "error", err)
+		return fmt.Errorf("typetodo could not be deleted: %w", err)
 	}
 	if rowsAffected < 1 {
-		db.log.Error("typetodo_app was not deleted", "id", id)
-		return fmt.Errorf("typetodo_app was not marked for deletion")
+		db.log.Error("typetodo was not deleted", "id", id)
+		return fmt.Errorf("typetodo was not marked for deletion")
 	}
 	return nil
 }

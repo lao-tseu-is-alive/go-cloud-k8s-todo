@@ -41,7 +41,7 @@ func validateName(name string) error {
 	return nil
 }
 
-// GeoJson returns a geoJson representation of todo_apps based on the given parameters
+// GeoJson returns a geoJson representation of todos based on the given parameters
 func (s *BusinessService) GeoJson(ctx context.Context, offset, limit int, params GeoJsonParams) (string, error) {
 	jsonResult, err := s.Store.GeoJson(ctx, offset, limit, params)
 	if err != nil {
@@ -53,7 +53,7 @@ func (s *BusinessService) GeoJson(ctx context.Context, offset, limit int, params
 	return jsonResult, nil
 }
 
-// List returns the list of todo_apps based on the given parameters
+// List returns the list of todos based on the given parameters
 func (s *BusinessService) List(ctx context.Context, offset, limit int, params ListParams) ([]*TodoList, error) {
 	list, err := s.Store.List(ctx, offset, limit, params)
 	if err != nil {
@@ -61,7 +61,7 @@ func (s *BusinessService) List(ctx context.Context, offset, limit int, params Li
 			// No rows is not an error, return empty slice
 			return make([]*TodoList, 0), nil
 		}
-		return nil, fmt.Errorf("error listing todo_apps: %w", err)
+		return nil, fmt.Errorf("error listing todos: %w", err)
 	}
 	if list == nil {
 		return make([]*TodoList, 0), nil
@@ -69,7 +69,7 @@ func (s *BusinessService) List(ctx context.Context, offset, limit int, params Li
 	return list, nil
 }
 
-// Create creates a new todo_app with the given data
+// Create creates a new todo with the given data
 func (s *BusinessService) Create(ctx context.Context, currentUserId int32, newTodo Todo) (*Todo, error) {
 	// Validate name
 	if err := validateName(newTodo.Name); err != nil {
@@ -82,7 +82,7 @@ func (s *BusinessService) Create(ctx context.Context, currentUserId int32, newTo
 		return nil, fmt.Errorf("%w: typeId %v", ErrTypeTodoNotFound, newTodo.TypeId)
 	}
 
-	// Check if todo_app already exists
+	// Check if todo already exists
 	if s.Store.Exist(ctx, newTodo.Id) {
 		return nil, fmt.Errorf("%w: id %v", ErrAlreadyExists, newTodo.Id)
 	}
@@ -91,72 +91,72 @@ func (s *BusinessService) Create(ctx context.Context, currentUserId int32, newTo
 	newTodo.CreatedBy = currentUserId
 
 	// Create in storage
-	todo_appCreated, err := s.Store.Create(ctx, newTodo)
+	todoCreated, err := s.Store.Create(ctx, newTodo)
 	if err != nil {
-		return nil, fmt.Errorf("error creating todo_app: %w", err)
+		return nil, fmt.Errorf("error creating todo: %w", err)
 	}
 
-	s.Log.Info("Created todo_app", "id", todo_appCreated.Id, "userId", currentUserId)
-	return todo_appCreated, nil
+	s.Log.Info("Created todo", "id", todoCreated.Id, "userId", currentUserId)
+	return todoCreated, nil
 }
 
-// Count returns the number of todo_apps based on the given parameters
+// Count returns the number of todos based on the given parameters
 func (s *BusinessService) Count(ctx context.Context, params CountParams) (int32, error) {
 	numTodos, err := s.Store.Count(ctx, params)
 	if err != nil {
-		return 0, fmt.Errorf("error counting todo_apps: %w", err)
+		return 0, fmt.Errorf("error counting todos: %w", err)
 	}
 	return numTodos, nil
 }
 
-// Delete removes a todo_app with the given ID
-func (s *BusinessService) Delete(ctx context.Context, currentUserId int32, todo_appId uuid.UUID) error {
-	// Check if todo_app exists
-	if !s.Store.Exist(ctx, todo_appId) {
-		return fmt.Errorf("%w: id %v", ErrNotFound, todo_appId)
+// Delete removes a todo with the given ID
+func (s *BusinessService) Delete(ctx context.Context, currentUserId int32, todoId uuid.UUID) error {
+	// Check if todo exists
+	if !s.Store.Exist(ctx, todoId) {
+		return fmt.Errorf("%w: id %v", ErrNotFound, todoId)
 	}
 
 	// Check if user is owner
-	if !s.Store.IsUserOwner(ctx, todo_appId, currentUserId) {
-		return fmt.Errorf("%w: user %d is not owner of todo_app %v", ErrUnauthorized, currentUserId, todo_appId)
+	if !s.Store.IsUserOwner(ctx, todoId, currentUserId) {
+		return fmt.Errorf("%w: user %d is not owner of todo %v", ErrUnauthorized, currentUserId, todoId)
 	}
 
 	// Delete from storage
-	err := s.Store.Delete(ctx, todo_appId, currentUserId)
+	err := s.Store.Delete(ctx, todoId, currentUserId)
 	if err != nil {
-		return fmt.Errorf("error deleting todo_app: %w", err)
+		return fmt.Errorf("error deleting todo: %w", err)
 	}
 
-	s.Log.Info("Deleted todo_app", "id", todo_appId, "userId", currentUserId)
+	s.Log.Info("Deleted todo", "id", todoId, "userId", currentUserId)
 	return nil
 }
 
-// Get retrieves a todo_app by its ID
-func (s *BusinessService) Get(ctx context.Context, todo_appId uuid.UUID) (*Todo, error) {
-	// Check if todo_app exists
-	if !s.Store.Exist(ctx, todo_appId) {
-		return nil, fmt.Errorf("%w: id %v", ErrNotFound, todo_appId)
+// Get retrieves a todo by its ID
+func (s *BusinessService) Get(ctx context.Context, todoId uuid.UUID) (*Todo, error) {
+	// Check if todo exists
+	if !s.Store.Exist(ctx, todoId) {
+		return nil, fmt.Errorf("%w: id %v", ErrNotFound, todoId)
 	}
 
 	// Get from storage
-	todo_app, err := s.Store.Get(ctx, todo_appId)
+	todo, err := s.Store.Get(ctx, todoId)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving todo_app: %w", err)
+		return nil, fmt.Errorf("error retrieving todo: %w", err)
 	}
 
-	return todo_app, nil
+	return todo, nil
 }
 
-// Update updates a todo_app with the given ID
-func (s *BusinessService) Update(ctx context.Context, currentUserId int32, todo_appId uuid.UUID, updateTodo Todo) (*Todo, error) {
-	// Check if todo_app exists
-	if !s.Store.Exist(ctx, todo_appId) {
-		return nil, fmt.Errorf("%w: id %v", ErrNotFound, todo_appId)
+// Update updates a todo with the given ID
+func (s *BusinessService) Update(ctx context.Context, currentUserId int32, todoId uuid.UUID, updateTodo Todo) (*Todo, error) {
+	// Check if todo exists
+	if !s.Store.Exist(ctx, todoId) {
+		return nil, fmt.Errorf("%w: id %v", ErrNotFound, todoId)
 	}
 
 	// Check if user is owner
-	if !s.Store.IsUserOwner(ctx, todo_appId, currentUserId) {
-		return nil, fmt.Errorf("%w: user %d is not owner of todo_app %v", ErrUnauthorized, currentUserId, todo_appId)
+	if !s.Store.IsUserOwner(ctx, todoId, currentUserId) {
+		return nil, fmt.Errorf("%w: user %d is not owner of todo %v", ErrUnauthorized, currentUserId, todoId)
 	}
 
 	// Validate name
@@ -174,16 +174,16 @@ func (s *BusinessService) Update(ctx context.Context, currentUserId int32, todo_
 	updateTodo.LastModifiedBy = &currentUserId
 
 	// Update in storage
-	todo_appUpdated, err := s.Store.Update(ctx, todo_appId, updateTodo)
+	todoUpdated, err := s.Store.Update(ctx, todoId, updateTodo)
 	if err != nil {
-		return nil, fmt.Errorf("error updating todo_app: %w", err)
+		return nil, fmt.Errorf("error updating todo: %w", err)
 	}
 
-	s.Log.Info("Updated todo_app", "id", todo_appId, "userId", currentUserId)
-	return todo_appUpdated, nil
+	s.Log.Info("Updated todo", "id", todoId, "userId", currentUserId)
+	return todoUpdated, nil
 }
 
-// ListByExternalId returns todo_apps filtered by external ID
+// ListByExternalId returns todos filtered by external ID
 func (s *BusinessService) ListByExternalId(ctx context.Context, offset, limit, externalId int) ([]*TodoList, error) {
 	list, err := s.Store.ListByExternalId(ctx, offset, limit, externalId)
 	if err != nil {
@@ -191,7 +191,7 @@ func (s *BusinessService) ListByExternalId(ctx context.Context, offset, limit, e
 			// No rows is not an error, return empty slice
 			return make([]*TodoList, 0), nil
 		}
-		return nil, fmt.Errorf("error listing todo_apps by external id: %w", err)
+		return nil, fmt.Errorf("error listing todos by external id: %w", err)
 	}
 	if list == nil {
 		return make([]*TodoList, 0), nil
@@ -199,7 +199,7 @@ func (s *BusinessService) ListByExternalId(ctx context.Context, offset, limit, e
 	return list, nil
 }
 
-// Search returns todo_apps based on search criteria
+// Search returns todos based on search criteria
 func (s *BusinessService) Search(ctx context.Context, offset, limit int, params SearchParams) ([]*TodoList, error) {
 	list, err := s.Store.Search(ctx, offset, limit, params)
 	if err != nil {
@@ -207,7 +207,7 @@ func (s *BusinessService) Search(ctx context.Context, offset, limit int, params 
 			// No rows is not an error, return empty slice
 			return make([]*TodoList, 0), nil
 		}
-		return nil, fmt.Errorf("error searching todo_apps: %w", err)
+		return nil, fmt.Errorf("error searching todos: %w", err)
 	}
 	if list == nil {
 		return make([]*TodoList, 0), nil
@@ -219,7 +219,7 @@ func (s *BusinessService) Search(ctx context.Context, offset, limit int, params 
 func (s *BusinessService) ListTypeTodos(ctx context.Context, offset, limit int, params TypeTodoListParams) ([]*TypeTodoList, error) {
 	list, err := s.Store.ListTypeTodo(ctx, offset, limit, params)
 	if err != nil {
-		return nil, fmt.Errorf("error listing type todo_apps: %w", err)
+		return nil, fmt.Errorf("error listing type todos: %w", err)
 	}
 	if list == nil {
 		return make([]*TypeTodoList, 0), nil
@@ -245,7 +245,7 @@ func (s *BusinessService) CreateTypeTodo(ctx context.Context, currentUserId int3
 	// Create in storage
 	typeTodoCreated, err := s.Store.CreateTypeTodo(ctx, newTypeTodo)
 	if err != nil {
-		return nil, fmt.Errorf("error creating type todo_app: %w", err)
+		return nil, fmt.Errorf("error creating type todo: %w", err)
 	}
 
 	s.Log.Info("Created TypeTodo", "id", typeTodoCreated.Id, "userId", currentUserId)
@@ -256,7 +256,7 @@ func (s *BusinessService) CreateTypeTodo(ctx context.Context, currentUserId int3
 func (s *BusinessService) CountTypeTodos(ctx context.Context, params TypeTodoCountParams) (int32, error) {
 	numTodos, err := s.Store.CountTypeTodo(ctx, params)
 	if err != nil {
-		return 0, fmt.Errorf("error counting type todo_apps: %w", err)
+		return 0, fmt.Errorf("error counting type todos: %w", err)
 	}
 	return numTodos, nil
 }
@@ -277,7 +277,7 @@ func (s *BusinessService) DeleteTypeTodo(ctx context.Context, currentUserId int3
 	// Delete from storage
 	err = s.Store.DeleteTypeTodo(ctx, typeTodoId, currentUserId)
 	if err != nil {
-		return fmt.Errorf("error deleting type todo_app: %w", err)
+		return fmt.Errorf("error deleting type todo: %w", err)
 	}
 
 	s.Log.Info("Deleted TypeTodo", "id", typeTodoId, "userId", currentUserId)
@@ -300,7 +300,7 @@ func (s *BusinessService) GetTypeTodo(ctx context.Context, isAdmin bool, typeTod
 	// Get from storage
 	typeTodo, err := s.Store.GetTypeTodo(ctx, typeTodoId)
 	if err != nil {
-		return nil, fmt.Errorf("error retrieving type todo_app: %w", err)
+		return nil, fmt.Errorf("error retrieving type todo: %w", err)
 	}
 
 	return typeTodo, nil
@@ -328,11 +328,11 @@ func (s *BusinessService) UpdateTypeTodo(ctx context.Context, currentUserId int3
 	updateTypeTodo.LastModifiedBy = &currentUserId
 
 	// Update in storage
-	todo_appUpdated, err := s.Store.UpdateTypeTodo(ctx, typeTodoId, updateTypeTodo)
+	todoUpdated, err := s.Store.UpdateTypeTodo(ctx, typeTodoId, updateTypeTodo)
 	if err != nil {
-		return nil, fmt.Errorf("error updating type todo_app: %w", err)
+		return nil, fmt.Errorf("error updating type todo: %w", err)
 	}
 
 	s.Log.Info("Updated TypeTodo", "id", typeTodoId, "userId", currentUserId)
-	return todo_appUpdated, nil
+	return todoUpdated, nil
 }

@@ -21,9 +21,9 @@ const (
 	M                   // Update or Put only
 	D                   // Delete only
 	C                   // Create only (Insert, Post)
-	P                   // change Permissions of one todo_app
+	P                   // change Permissions of one todo
 	O                   // change Owner of one Todo
-	A                   // Audit log of changes of one todo_app and read only special _fields like _created_by
+	A                   // Audit log of changes of one todo and read only special _fields like _created_by
 )
 
 func (s Permission) String() string {
@@ -85,9 +85,9 @@ func (s Service) GeoJson(ctx echo.Context, params GeoJsonParams) error {
 	return ctx.JSONBlob(http.StatusOK, []byte(jsonResult))
 }
 
-// List sends a list of todo_apps in the store based on the given parameters filters
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app?limit=3&ofset=0' |jq
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app?limit=3&type=112' |jq
+// List sends a list of todos in the store based on the given parameters filters
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo?limit=3&ofset=0' |jq
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo?limit=3&type=112' |jq
 func (s Service) List(ctx echo.Context, params ListParams) error {
 	handlerName := "List"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
@@ -117,8 +117,8 @@ func (s Service) List(ctx echo.Context, params ListParams) error {
 	return ctx.JSON(http.StatusOK, list)
 }
 
-// Create allows to insert a new todo_app
-// curl -s -XPOST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"id": "3999971f-53d7-4eb6-8898-97f257ea5f27","type_id": 3,"name": "Gil-Parcelle","description": "just a nice parcelle test","external_id": 345678912,"inactivated": false,"managed_by": 999, "more_data": NULL,"pos_x":2537603.0 ,"pos_y":1152613.0   }' 'http://localhost:9090/goapi/v1/todo_app'
+// Create allows to insert a new todo
+// curl -s -XPOST -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"id": "3999971f-53d7-4eb6-8898-97f257ea5f27","type_id": 3,"name": "Gil-Parcelle","description": "just a nice parcelle test","external_id": 345678912,"inactivated": false,"managed_by": 999, "more_data": NULL,"pos_x":2537603.0 ,"pos_y":1152613.0   }' 'http://localhost:9090/goapi/v1/todo'
 func (s Service) Create(ctx echo.Context) error {
 	handlerName := "Create"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
@@ -139,7 +139,7 @@ func (s Service) Create(ctx echo.Context) error {
 		s.Log.Error(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
-	s.Log.Info("Create Todo Bind ok", "todo_app", newTodo.Name)
+	s.Log.Info("Create Todo Bind ok", "todo", newTodo.Name)
 	if len(strings.Trim(newTodo.Name, " ")) < 1 {
 
 		msg := fmt.Sprintf(FieldCannotBeEmpty, "name")
@@ -158,18 +158,18 @@ func (s Service) Create(ctx echo.Context) error {
 		s.Log.Error(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
-	todo_appCreated, err := s.Store.Create(reqCtx, *newTodo)
+	todoCreated, err := s.Store.Create(reqCtx, *newTodo)
 	if err != nil {
-		msg := fmt.Sprintf("Create had an error saving todo_app:%#v, err:%#v", *newTodo, err)
+		msg := fmt.Sprintf("Create had an error saving todo:%#v, err:%#v", *newTodo, err)
 		s.Log.Info(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
-	s.Log.Info("Create success", "todo_appId", todo_appCreated.Id)
-	return ctx.JSON(http.StatusCreated, todo_appCreated)
+	s.Log.Info("Create success", "todoId", todoCreated.Id)
+	return ctx.JSON(http.StatusCreated, todoCreated)
 }
 
-// Count returns the number of todo_apps found after filtering data with any given CountParams
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app/count' |jq
+// Count returns the number of todos found after filtering data with any given CountParams
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo/count' |jq
 func (s Service) Count(ctx echo.Context, params CountParams) error {
 	handlerName := "Count"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
@@ -181,15 +181,15 @@ func (s Service) Count(ctx echo.Context, params CountParams) error {
 	reqCtx := ctx.Request().Context()
 	numTodos, err := s.Store.Count(reqCtx, params)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem counting todo_apps :%v", err))
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem counting todos :%v", err))
 	}
 	return ctx.JSON(http.StatusOK, numTodos)
 }
 
-// Delete will remove the given todo_appId entry from the store, and if not present will return 400 Bad Request
+// Delete will remove the given todoId entry from the store, and if not present will return 400 Bad Request
 // curl -v -XDELETE -H "Content-Type: application/json" -H "Authorization: Bearer $token" 'http://localhost:8888/api/users/3' ->  204 No Content if present and delete it
 // curl -v -XDELETE -H "Content-Type: application/json"  -H "Authorization: Bearer $token" 'http://localhost:8888/users/93333' -> 400 Bad Request
-func (s Service) Delete(ctx echo.Context, todo_appId uuid.UUID) error {
+func (s Service) Delete(ctx echo.Context, todoId uuid.UUID) error {
 	handlerName := "GeoJson"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
 	// get the current user from JWT TOKEN
@@ -198,23 +198,23 @@ func (s Service) Delete(ctx echo.Context, todo_appId uuid.UUID) error {
 	s.Log.Info("handler called", "handler", handlerName, "userId", currentUserId)
 	// Use request context for cancellation and tracing support
 	reqCtx := ctx.Request().Context()
-	if s.Store.Exist(reqCtx, todo_appId) == false {
-		msg := fmt.Sprintf("Delete(%v) cannot delete this id, it does not exist !", todo_appId)
+	if s.Store.Exist(reqCtx, todoId) == false {
+		msg := fmt.Sprintf("Delete(%v) cannot delete this id, it does not exist !", todoId)
 		s.Log.Warn(msg)
 		return ctx.JSON(http.StatusNotFound, msg)
 	}
 	// IF USER IS NOT OWNER OF RECORD RETURN 401 Unauthorized
-	if !s.Store.IsUserOwner(reqCtx, todo_appId, currentUserId) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "current user is not owner of this todo_app")
+	if !s.Store.IsUserOwner(reqCtx, todoId, currentUserId) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "current user is not owner of this todo")
 	}
 	/* TODO implement ACL & RBAC handling
 	if !s.Store.IsUserAllowedToDelete(currentUserId, typeTodo) {
 		return echo.NewHTTPError(http.StatusUnauthorized, "current user has no create role privilege")
 	}
 	*/
-	err := s.Store.Delete(reqCtx, todo_appId, currentUserId)
+	err := s.Store.Delete(reqCtx, todoId, currentUserId)
 	if err != nil {
-		msg := fmt.Sprintf("Delete(%v) got an error: %#v ", todo_appId, err)
+		msg := fmt.Sprintf("Delete(%v) got an error: %#v ", todoId, err)
 		s.Log.Error(msg)
 		return echo.NewHTTPError(http.StatusInternalServerError, msg)
 	}
@@ -223,8 +223,8 @@ func (s Service) Delete(ctx echo.Context, todo_appId uuid.UUID) error {
 }
 
 // Get will retrieve the Todo with the given id in the store and return it
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app/9999971f-53d7-4eb6-8898-97f257ea5f27' |jq
-func (s Service) Get(ctx echo.Context, todo_appId uuid.UUID) error {
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo/9999971f-53d7-4eb6-8898-97f257ea5f27' |jq
+func (s Service) Get(ctx echo.Context, todoId uuid.UUID) error {
 	handlerName := "Get"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
 	// get the current user from JWT TOKEN
@@ -233,8 +233,8 @@ func (s Service) Get(ctx echo.Context, todo_appId uuid.UUID) error {
 	s.Log.Info("handler called", "handler", handlerName, "userId", currentUserId)
 	// Use request context for cancellation and tracing support
 	reqCtx := ctx.Request().Context()
-	if s.Store.Exist(reqCtx, todo_appId) == false {
-		msg := fmt.Sprintf("Get(%v) cannot get this id, it does not exist !", todo_appId)
+	if s.Store.Exist(reqCtx, todoId) == false {
+		msg := fmt.Sprintf("Get(%v) cannot get this id, it does not exist !", todoId)
 		s.Log.Info(msg)
 		return ctx.JSON(http.StatusNotFound, msg)
 	}
@@ -243,37 +243,37 @@ func (s Service) Get(ctx echo.Context, todo_appId uuid.UUID) error {
 		return echo.NewHTTPError(http.StatusUnauthorized, "current user has no create role privilege")
 	}
 	*/
-	todo_app, err := s.Store.Get(reqCtx, todo_appId)
+	todo, err := s.Store.Get(reqCtx, todoId)
 	if err != nil {
 		if !errors.Is(err, pgx.ErrNoRows) {
-			return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem retrieving todo_app :%v", err))
+			return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem retrieving todo :%v", err))
 		} else {
-			msg := fmt.Sprintf("Get(%v) no rows found in db", todo_appId)
+			msg := fmt.Sprintf("Get(%v) no rows found in db", todoId)
 			s.Log.Info(msg)
 			return ctx.JSON(http.StatusNotFound, msg)
 		}
 	}
-	return ctx.JSON(http.StatusOK, todo_app)
+	return ctx.JSON(http.StatusOK, todo)
 }
 
-// Update will change the attributes values for the todo_app identified by the given todo_appId
-// curl -s -XPUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"id": "3999971f-53d7-4eb6-8898-97f257ea5f27","type_id": 3,"name": "Gil-Parcelle","description": "just a nice parcelle test by GIL","external_id": 345678912,"inactivated": false,"managed_by": 999, "more_data": {"info_value": 3230 },"pos_x":2537603.0 ,"pos_y":1152613.0   }' 'http://localhost:9090/goapi/v1/todo_app/3999971f-53d7-4eb6-8898-97f257ea5f27' |jq
-func (s Service) Update(ctx echo.Context, todo_appId uuid.UUID) error {
+// Update will change the attributes values for the todo identified by the given todoId
+// curl -s -XPUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" -d '{"id": "3999971f-53d7-4eb6-8898-97f257ea5f27","type_id": 3,"name": "Gil-Parcelle","description": "just a nice parcelle test by GIL","external_id": 345678912,"inactivated": false,"managed_by": 999, "more_data": {"info_value": 3230 },"pos_x":2537603.0 ,"pos_y":1152613.0   }' 'http://localhost:9090/goapi/v1/todo/3999971f-53d7-4eb6-8898-97f257ea5f27' |jq
+func (s Service) Update(ctx echo.Context, todoId uuid.UUID) error {
 	handlerName := "GeoJson"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
 	// get the current user from JWT TOKEN
 	claims := s.Server.JwtCheck.GetJwtCustomClaimsFromContext(ctx)
 	currentUserId := int32(claims.User.UserId)
-	s.Log.Info("handler called", "handler", handlerName, "todo_appId", todo_appId, "userId", currentUserId)
+	s.Log.Info("handler called", "handler", handlerName, "todoId", todoId, "userId", currentUserId)
 	// Use request context for cancellation and tracing support
 	reqCtx := ctx.Request().Context()
-	if s.Store.Exist(reqCtx, todo_appId) == false {
-		msg := fmt.Sprintf("Update(%v) cannot update this id, it does not exist !", todo_appId)
+	if s.Store.Exist(reqCtx, todoId) == false {
+		msg := fmt.Sprintf("Update(%v) cannot update this id, it does not exist !", todoId)
 		s.Log.Warn(msg)
 		return ctx.JSON(http.StatusNotFound, msg)
 	}
-	if !s.Store.IsUserOwner(reqCtx, todo_appId, currentUserId) {
-		return echo.NewHTTPError(http.StatusUnauthorized, "current user is not owner of this todo_app")
+	if !s.Store.IsUserOwner(reqCtx, todoId, currentUserId) {
+		return echo.NewHTTPError(http.StatusUnauthorized, "current user is not owner of this todo")
 	}
 	/* TODO implement ACL & RBAC handling
 	if !s.Store.IsUserAllowedToUpdate(currentUserId, typeTodo) {
@@ -301,18 +301,18 @@ func (s Service) Update(ctx echo.Context, todo_appId uuid.UUID) error {
 	updateTodo.LastModifiedBy = &currentUserId
 	//TODO handle update of validated field correctly by adding validated time & user
 	// handle update of managed_by field correctly by checking if user is a valid active one
-	todo_appUpdated, err := s.Store.Update(reqCtx, todo_appId, *updateTodo)
+	todoUpdated, err := s.Store.Update(reqCtx, todoId, *updateTodo)
 	if err != nil {
-		msg := fmt.Sprintf("Update had an error saving todo_app:%#v, err:%#v", *updateTodo, err)
+		msg := fmt.Sprintf("Update had an error saving todo:%#v, err:%#v", *updateTodo, err)
 		s.Log.Info(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
-	s.Log.Info("Update success", "todo_appId", todo_appUpdated.Id)
-	return ctx.JSON(http.StatusOK, todo_appUpdated)
+	s.Log.Info("Update success", "todoId", todoUpdated.Id)
+	return ctx.JSON(http.StatusOK, todoUpdated)
 }
 
-// ListByExternalId sends a list of todo_apps in the store as json based of the given filters
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app/by-external-id/345678912?limit=3&ofset=0' |jq
+// ListByExternalId sends a list of todos in the store as json based of the given filters
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo/by-external-id/345678912?limit=3&ofset=0' |jq
 func (s Service) ListByExternalId(ctx echo.Context, externalId int32, params ListByExternalIdParams) error {
 	handlerName := "ListByExternalId"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
@@ -342,9 +342,9 @@ func (s Service) ListByExternalId(ctx echo.Context, externalId int32, params Lis
 	return ctx.JSON(http.StatusOK, list)
 }
 
-// Search returns a list of todo_apps in the store as json based of the given search criteria
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app/search?limit=3&ofset=0' |jq
-// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo_app/search?limit=3&type=112' |jq
+// Search returns a list of todos in the store as json based of the given search criteria
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo/search?limit=3&ofset=0' |jq
+// curl -s -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" 'http://localhost:9090/goapi/v1/todo/search?limit=3&type=112' |jq
 func (s Service) Search(ctx echo.Context, params SearchParams) error {
 	handlerName := "Search"
 	goHttpEcho.TraceHttpRequest(handlerName, ctx.Request(), s.Log)
@@ -458,7 +458,7 @@ func (s Service) TypeTodoCreate(ctx echo.Context) error {
 	//s.Log.Info("# Create() before Store.TypeTodoCreate newTodo : %#v\n", newTodo)
 	typeTodoCreated, err := s.Store.CreateTypeTodo(reqCtx, *newTypeTodo)
 	if err != nil {
-		msg := fmt.Sprintf("TypeTodoCreate had an error saving todo_app:%#v, err:%#v", *newTypeTodo, err)
+		msg := fmt.Sprintf("TypeTodoCreate had an error saving todo:%#v, err:%#v", *newTypeTodo, err)
 		s.Log.Info(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
@@ -477,7 +477,7 @@ func (s Service) TypeTodoCount(ctx echo.Context, params TypeTodoCountParams) err
 	reqCtx := ctx.Request().Context()
 	numTodos, err := s.Store.CountTypeTodo(reqCtx, params)
 	if err != nil {
-		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem counting todo_apps :%v", err))
+		return echo.NewHTTPError(http.StatusInternalServerError, fmt.Sprintf("problem counting todos :%v", err))
 	}
 	return ctx.JSON(http.StatusOK, numTodos)
 }
@@ -571,12 +571,12 @@ func (s Service) TypeTodoUpdate(ctx echo.Context, typeTodoId int32) error {
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
 	uTypeTodo.LastModifiedBy = &currentUserId
-	todo_appUpdated, err := s.Store.UpdateTypeTodo(reqCtx, typeTodoId, *uTypeTodo)
+	todoUpdated, err := s.Store.UpdateTypeTodo(reqCtx, typeTodoId, *uTypeTodo)
 	if err != nil {
 		msg := fmt.Sprintf("TypeTodoUpdate had an error saving typeTodo:%#v, err:%#v", *uTypeTodo, err)
 		s.Log.Info(msg)
 		return ctx.JSON(http.StatusBadRequest, msg)
 	}
-	s.Log.Info("TypeTodoUpdate success", "typeTodoId", todo_appUpdated.Id)
-	return ctx.JSON(http.StatusOK, todo_appUpdated)
+	s.Log.Info("TypeTodoUpdate success", "typeTodoId", todoUpdated.Id)
+	return ctx.JSON(http.StatusOK, todoUpdated)
 }

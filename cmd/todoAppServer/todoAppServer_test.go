@@ -25,7 +25,7 @@ import (
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/gohttpclient"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/golog"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/tools"
-	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/todo_app"
+	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/todo"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/version"
 	"github.com/stretchr/testify/assert"
 )
@@ -34,10 +34,10 @@ const (
 	DEBUG                           = false
 	assertCorrectStatusCodeExpected = "expected status code should be returned"
 	urlLogin                        = "/login"
-	urltodoApp                      = "/todo_app"
+	urltodoApp                      = "/todo"
 	urlTypetodoApp                  = "/types"
 	newtodoAppId                    = "24466b0c-686d-42a3-87ef-bf6cefeb3d35"
-	urlNewtodoAppId                 = "/todo_app/" + newtodoAppId
+	urlNewtodoAppId                 = "/todo/" + newtodoAppId
 	bodyIdNewtodoApp                = "\"id\":\"" + newtodoAppId + "\""
 	newtodoAppExternalId            = "1234567890"
 	exampletodoApp                  = `
@@ -246,44 +246,44 @@ func TestMainExec(t *testing.T) {
 	l.Info("connected to db", "version", dbVersion)
 	dbCtx, dbCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer dbCancel()
-	existTable, err := db.GetQueryBool(dbCtx, "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'todo' AND tablename  = 'todo_app');")
+	existTable, err := db.GetQueryBool(dbCtx, "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'todo' AND tablename  = 'todo');")
 	if err != nil {
-		t.Fatalf("problem verifying if todo_app exist in DB. failed db.Query err: %v", err)
+		t.Fatalf("problem verifying if todo exist in DB. failed db.Query err: %v", err)
 	}
 	if existTable {
-		// removing latest test record if exist only if the todo_app table already exist
-		count, err := db.GetQueryInt(dbCtx, "SELECT COUNT(*) FROM todo.todo_app WHERE id = $1;", newtodoAppId)
+		// removing latest test record if exist only if the todo table already exist
+		count, err := db.GetQueryInt(dbCtx, "SELECT COUNT(*) FROM todo.todo WHERE id = $1;", newtodoAppId)
 		if err != nil {
 			t.Fatalf("problem during cleanup before test DB. failed db.Query err: %v", err)
 		}
 		if count > 0 {
 			fmt.Printf(" This Id(%v) does exist  will cleanup before running test", newtodoAppId)
-			db.ExecActionQuery(dbCtx, "DELETE FROM  todo.todo_app WHERE id=$1", newtodoAppId)
+			db.ExecActionQuery(dbCtx, "DELETE FROM  todo.todo WHERE id=$1", newtodoAppId)
 		}
 	}
 
-	// deleting type todo_app of previous run if it's still present and if table type_todo_app exist only
-	existTableTypetodoApp, err := db.GetQueryBool(dbCtx, "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'todo' AND tablename  = 'type_todo_app');")
+	// deleting type todo of previous run if it's still present and if table type_todo exist only
+	existTableTypetodoApp, err := db.GetQueryBool(dbCtx, "SELECT EXISTS (SELECT FROM pg_tables WHERE schemaname = 'todo' AND tablename  = 'type_todo');")
 	if err != nil {
-		t.Fatalf("problem verifying if todo_app exist in DB. failed db.Query err: %v", err)
+		t.Fatalf("problem verifying if todo exist in DB. failed db.Query err: %v", err)
 	}
 	var existingMaxTypetodoAppId = 112
 	var existingCountTypetodoAppId = 107
 	if existTableTypetodoApp {
-		sqlDeleteInsertedTypetodoApp := "DELETE FROM todo.type_todo_app WHERE external_id=987654321;"
+		sqlDeleteInsertedTypetodoApp := "DELETE FROM todo.type_todo WHERE external_id=987654321;"
 		_, err = db.ExecActionQuery(dbCtx, sqlDeleteInsertedTypetodoApp)
 		if err != nil {
-			t.Fatalf("problem trying to delete type_todo_app from previous test doing cleanup before running tests. failed db.Query err: %v", err)
+			t.Fatalf("problem trying to delete type_todo from previous test doing cleanup before running tests. failed db.Query err: %v", err)
 		}
-		typetodoAppMaxIdSql := "SELECT MAX(id) FROM todo.type_todo_app"
+		typetodoAppMaxIdSql := "SELECT MAX(id) FROM todo.type_todo"
 		existingMaxTypetodoAppId, err = db.GetQueryInt(dbCtx, typetodoAppMaxIdSql)
 		if err != nil {
 			t.Fatalf("problem trying to retrieve max id for typetodoApp cleanup before running test. failed db.Query err: %v", err)
 		}
-		resetSequence := "SELECT setval('todo.type_todo_app_id_seq', max(id)) FROM todo.type_todo_app;"
+		resetSequence := "SELECT setval('todo.type_todo_id_seq', max(id)) FROM todo.type_todo;"
 		_, err = db.ExecActionQuery(dbCtx, resetSequence)
 		if err != nil {
-			t.Fatalf("problem trying to resetSequence to max id for type_todo_app_id_seq while doing cleanup before running tests. failed db.Query err: %v", err)
+			t.Fatalf("problem trying to resetSequence to max id for type_todo_id_seq while doing cleanup before running tests. failed db.Query err: %v", err)
 		}
 	}
 	// incrementing one to get the real id of insert
@@ -352,7 +352,7 @@ func TestMainExec(t *testing.T) {
 			body:                         formLoginWrong.Encode(),
 		},
 		{
-			name:                         "GET /todo_app without JWT token should return an error",
+			name:                         "GET /todo without JWT token should return an error",
 			wantStatusCode:               http.StatusUnauthorized,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "missing authorization header",
@@ -400,7 +400,7 @@ func TestMainExec(t *testing.T) {
 			body:                         exampleTypetodoApp,
 		},
 		{
-			name:                         "POST /todo_app with empty name should return bad request",
+			name:                         "POST /todo with empty name should return bad request",
 			wantStatusCode:               http.StatusBadRequest,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     nameCannotBeEmpty,
@@ -412,7 +412,7 @@ func TestMainExec(t *testing.T) {
 			body:                         `{ "created_by": 999999, "external_id": 1234567890,     "id": "34466b0c-686d-42a3-87ef-bf6cefeb3d35","name": " ",     "pos_x": 2537607.64,     "pos_y": 1152609.12,     "type_id": 2,     "validated": false   } `,
 		},
 		{
-			name:                         "POST /todo_app with name shorter then 5 chars should return bad request",
+			name:                         "POST /todo with name shorter then 5 chars should return bad request",
 			wantStatusCode:               http.StatusBadRequest,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     nameMinLenghtMsg,
@@ -424,7 +424,7 @@ func TestMainExec(t *testing.T) {
 			body:                         ` { "created_by": 999999, "external_id": 1234567890,     "id": "34466b0c-686d-42a3-87ef-bf6cefeb3d35","name": "toto",     "pos_x": 2537607.64,     "pos_y": 1152609.12,     "type_id": 2,     "validated": false   } `,
 		},
 		{
-			name:                         "POST /todo_app with valid JWT token should create a new todoApps",
+			name:                         "POST /todo with valid JWT token should create a new todoApps",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "createdAt",
@@ -436,7 +436,7 @@ func TestMainExec(t *testing.T) {
 			body:                         exampletodoApp,
 		},
 		{
-			name:                         "POST /todo_app with id already present should return error",
+			name:                         "POST /todo with id already present should return error",
 			wantStatusCode:               http.StatusConflict,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "already exist",
@@ -460,43 +460,43 @@ func TestMainExec(t *testing.T) {
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app with valid JWT token should return an list of todoApps",
+			name:                         "GET /todo with valid JWT token should return an list of todoApps",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app?limit=1&offset=0&type=2&created_by=999999",
+			url:                          defaultSecuredApi + "/todo?limit=1&offset=0&type=2&created_by=999999",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app with created_by and validated false should return the valid todo_app",
+			name:                         "GET /todo with created_by and validated false should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app?limit=1&offset=0&type=2&created_by=999999&validated=false",
+			url:                          defaultSecuredApi + "/todo?limit=1&offset=0&type=2&created_by=999999&validated=false",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app with created_by and validated true should return empty list",
+			name:                         "GET /todo with created_by and validated true should return empty list",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "{}",
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app?limit=1&offset=0&type=2&created_by=999999&validated=true",
+			url:                          defaultSecuredApi + "/todo?limit=1&offset=0&type=2&created_by=999999&validated=true",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app with existing id should return the valid todo_app",
+			name:                         "GET /todo with existing id should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
@@ -508,31 +508,31 @@ func TestMainExec(t *testing.T) {
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app with non-existing id should return StatusNotFound",
+			name:                         "GET /todo with non-existing id should return StatusNotFound",
 			wantStatusCode:               http.StatusNotFound,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "",
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/11111111-4444-5555-6666-777777777777",
+			url:                          defaultSecuredApi + "/todo/11111111-4444-5555-6666-777777777777",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/count without filter params should return an int > 1",
+			name:                         "GET /todo/count without filter params should return an int > 1",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "1",
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/count",
+			url:                          defaultSecuredApi + "/todo/count",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "PUT /todo_app with existing id but empty name should return bad request",
+			name:                         "PUT /todo with existing id but empty name should return bad request",
 			wantStatusCode:               http.StatusBadRequest,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     nameCannotBeEmpty,
@@ -544,7 +544,7 @@ func TestMainExec(t *testing.T) {
 			body:                         `{ "created_by": 999999, "external_id": 1234567890,     "id": "34466b0c-686d-42a3-87ef-bf6cefeb3d35","name": " ",     "pos_x": 2537607.64,     "pos_y": 1152609.12,     "type_id": 2,     "validated": false   } `,
 		},
 		{
-			name:                         "PUT /todo_app with existing id but name shorter then 5 chars should return bad request",
+			name:                         "PUT /todo with existing id but name shorter then 5 chars should return bad request",
 			wantStatusCode:               http.StatusBadRequest,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     nameMinLenghtMsg,
@@ -557,7 +557,7 @@ func TestMainExec(t *testing.T) {
 		},
 
 		{
-			name:                         "PUT /todo_app with existing id should return the valid todo_app",
+			name:                         "PUT /todo with existing id should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "\"comment\":\"À Noël ",
@@ -569,115 +569,115 @@ func TestMainExec(t *testing.T) {
 			body:                         exampletodoAppUpdate,
 		},
 		{
-			name:                         "PUT /todo_app with non-existing id should return StatusNotFound",
+			name:                         "PUT /todo with non-existing id should return StatusNotFound",
 			wantStatusCode:               http.StatusNotFound,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "not found",
 			paramKeyValues:               make(map[string]string, 0),
 			httpMethod:                   http.MethodPut,
-			url:                          defaultSecuredApi + "/todo_app/11111111-4444-5555-6666-777777777777",
+			url:                          defaultSecuredApi + "/todo/11111111-4444-5555-6666-777777777777",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/by-external-id with existing id should return the valid todo_app",
+			name:                         "GET /todo/by-external-id with existing id should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string, 0),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/by-external-id/" + newtodoAppExternalId + "?limit=1&offset=0",
+			url:                          defaultSecuredApi + "/todo/by-external-id/" + newtodoAppExternalId + "?limit=1&offset=0",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/by-external-id with non-existing id should return StatusNotFound",
+			name:                         "GET /todo/by-external-id with non-existing id should return StatusNotFound",
 			wantStatusCode:               http.StatusNotFound,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "",
 			paramKeyValues:               make(map[string]string, 0),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/by-external-id/2147483645",
+			url:                          defaultSecuredApi + "/todo/by-external-id/2147483645",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/search with existing keyword should return the valid todo_app",
+			name:                         "GET /todo/search with existing keyword should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&keywords=æschynanthes",
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&keywords=æschynanthes",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/search with existing keyword and validated should return the valid todo_app",
+			name:                         "GET /todo/search with existing keyword and validated should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&keywords=æschynanthes&validated=true",
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&keywords=æschynanthes&validated=true",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/search with existing keyword and validated false should return todo_app",
+			name:                         "GET /todo/search with existing keyword and validated false should return todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
-			wantBody:                     "todo_apps",
+			wantBody:                     "todos",
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&keywords=æschynanthes&validated=false",
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&keywords=æschynanthes&validated=false",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/search validated should return the valid todo_app",
-			wantStatusCode:               http.StatusOK,
-			contentType:                  MIMEHtmlCharsetUTF8,
-			wantBody:                     bodyIdNewtodoApp,
-			paramKeyValues:               make(map[string]string),
-			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&validated=true",
-			useFormUrlencodedContentType: false,
-			useJwtToken:                  true,
-			body:                         "",
-		},
-		{
-			name:                         "GET /todo_app/search with created_by should return the valid todo_app",
+			name:                         "GET /todo/search validated should return the valid todo",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     bodyIdNewtodoApp,
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&created_by=999999",
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&validated=true",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "GET /todo_app/search with non-existing keyword should return ok and empty object",
+			name:                         "GET /todo/search with created_by should return the valid todo",
+			wantStatusCode:               http.StatusOK,
+			contentType:                  MIMEHtmlCharsetUTF8,
+			wantBody:                     bodyIdNewtodoApp,
+			paramKeyValues:               make(map[string]string),
+			httpMethod:                   http.MethodGet,
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&created_by=999999",
+			useFormUrlencodedContentType: false,
+			useJwtToken:                  true,
+			body:                         "",
+		},
+		{
+			name:                         "GET /todo/search with non-existing keyword should return ok and empty object",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "{}",
 			paramKeyValues:               make(map[string]string),
 			httpMethod:                   http.MethodGet,
-			url:                          defaultSecuredApi + "/todo_app/search?limit=1&offset=0&keywords=anticonstitutionnellement",
+			url:                          defaultSecuredApi + "/todo/search?limit=1&offset=0&keywords=anticonstitutionnellement",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
 		},
 		{
-			name:                         "DELETE /todo_app with existing id should return StatusOK",
+			name:                         "DELETE /todo with existing id should return StatusOK",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "",
@@ -689,13 +689,13 @@ func TestMainExec(t *testing.T) {
 			body:                         "",
 		},
 		{
-			name:                         "DELETE /todo_app with non-existing id should return StatusNotFound",
+			name:                         "DELETE /todo with non-existing id should return StatusNotFound",
 			wantStatusCode:               http.StatusNotFound,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     "",
 			paramKeyValues:               make(map[string]string, 0),
 			httpMethod:                   http.MethodDelete,
-			url:                          defaultSecuredApi + "/todo_app/11111111-4444-5555-6666-777777777777",
+			url:                          defaultSecuredApi + "/todo/11111111-4444-5555-6666-777777777777",
 			useFormUrlencodedContentType: false,
 			useJwtToken:                  true,
 			body:                         "",
@@ -846,7 +846,7 @@ func TestMainExec(t *testing.T) {
 			body:                         "",
 		},
 		{
-			name:                         "GET /types/count should return the number of type todo_app id",
+			name:                         "GET /types/count should return the number of type todo id",
 			wantStatusCode:               http.StatusOK,
 			contentType:                  MIMEHtmlCharsetUTF8,
 			wantBody:                     strconv.Itoa(existingCountTypetodoAppId),

@@ -66,16 +66,16 @@ func (m *MockStorage) Count(ctx context.Context, params CountParams) (int32, err
 	return int32(args.Int(0)), args.Error(1)
 }
 
-func (m *MockStorage) Create(ctx context.Context, todo_app Todo) (*Todo, error) {
-	args := m.Called(ctx, todo_app)
+func (m *MockStorage) Create(ctx context.Context, todo Todo) (*Todo, error) {
+	args := m.Called(ctx, todo)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
 	return args.Get(0).(*Todo), args.Error(1)
 }
 
-func (m *MockStorage) Update(ctx context.Context, id uuid.UUID, todo_app Todo) (*Todo, error) {
-	args := m.Called(ctx, id, todo_app)
+func (m *MockStorage) Update(ctx context.Context, id uuid.UUID, todo Todo) (*Todo, error) {
+	args := m.Called(ctx, id, todo)
 	if args.Get(0) == nil {
 		return nil, args.Error(1)
 	}
@@ -211,9 +211,9 @@ func TestBusinessService_Create(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		newTodo := Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Test Todo",
 		}
 
@@ -221,9 +221,9 @@ func TestBusinessService_Create(t *testing.T) {
 		expectedTodo.CreatedBy = 123
 
 		// Mock TypeTodo existence check
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, []interface{}{newTodo.TypeId}).Return(1, nil)
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(false)
-		mockStore.On("Create", mock.Anytodo_app, mock.Anytodo_appOfType("Todo")).Return(&expectedTodo, nil)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, []interface{}{newTodo.TypeId}).Return(1, nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(false)
+		mockStore.On("Create", mock.Anytodo, mock.AnytodoOfType("Todo")).Return(&expectedTodo, nil)
 
 		result, err := service.Create(ctx, 123, newTodo)
 
@@ -279,7 +279,7 @@ func TestBusinessService_Create(t *testing.T) {
 		}
 
 		// Mock TypeTodo existence check failure
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, []interface{}{newTodo.TypeId}).Return(0, nil)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, []interface{}{newTodo.TypeId}).Return(0, nil)
 
 		result, err := service.Create(ctx, 123, newTodo)
 
@@ -293,15 +293,15 @@ func TestBusinessService_Create(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		newTodo := Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Test Todo",
 		}
 
 		// Mock TypeTodo existence check
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, []interface{}{newTodo.TypeId}).Return(1, nil)
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, []interface{}{newTodo.TypeId}).Return(1, nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
 
 		result, err := service.Create(ctx, 123, newTodo)
 
@@ -321,16 +321,16 @@ func TestBusinessService_Get(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		expectedTodo := &Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Test Todo",
 		}
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("Get", mock.Anytodo_app, todo_appID).Return(expectedTodo, nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("Get", mock.Anytodo, todoID).Return(expectedTodo, nil)
 
-		result, err := service.Get(ctx, todo_appID)
+		result, err := service.Get(ctx, todoID)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -338,15 +338,15 @@ func TestBusinessService_Get(t *testing.T) {
 		mockStore.AssertExpectations(t)
 	})
 
-	t.Run("todo_app not found", func(t *testing.T) {
+	t.Run("todo not found", func(t *testing.T) {
 		mockStore := new(MockStorage)
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(false)
+		todoID := uuid.New()
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(false)
 
-		result, err := service.Get(ctx, todo_appID)
+		result, err := service.Get(ctx, todoID)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -364,23 +364,23 @@ func TestBusinessService_Update(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 		updateTodo := Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Updated Todo",
 		}
 
 		expectedTodo := updateTodo
 		expectedTodo.LastModifiedBy = &userID
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(true)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(true)
 		// Mock TypeTodo existence check
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, []interface{}{updateTodo.TypeId}).Return(1, nil)
-		mockStore.On("Update", mock.Anytodo_app, todo_appID, mock.Anytodo_appOfType("Todo")).Return(&expectedTodo, nil)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, []interface{}{updateTodo.TypeId}).Return(1, nil)
+		mockStore.On("Update", mock.Anytodo, todoID, mock.AnytodoOfType("Todo")).Return(&expectedTodo, nil)
 
-		result, err := service.Update(ctx, userID, todo_appID, updateTodo)
+		result, err := service.Update(ctx, userID, todoID, updateTodo)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, result)
@@ -393,17 +393,17 @@ func TestBusinessService_Update(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 		updateTodo := Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Updated Todo",
 		}
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(false)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(false)
 
-		result, err := service.Update(ctx, userID, todo_appID, updateTodo)
+		result, err := service.Update(ctx, userID, todoID, updateTodo)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -415,20 +415,20 @@ func TestBusinessService_Update(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 		updateTodo := Todo{
-			Id:     todo_appID,
+			Id:     todoID,
 			Name:   "Updated Todo",
 			TypeId: 999,
 		}
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(true)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(true)
 		// Mock TypeTodo existence check failure
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, []interface{}{updateTodo.TypeId}).Return(0, nil)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, []interface{}{updateTodo.TypeId}).Return(0, nil)
 
-		result, err := service.Update(ctx, userID, todo_appID, updateTodo)
+		result, err := service.Update(ctx, userID, todoID, updateTodo)
 
 		assert.Error(t, err)
 		assert.Nil(t, result)
@@ -446,14 +446,14 @@ func TestBusinessService_Delete(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(true)
-		mockStore.On("Delete", mock.Anytodo_app, todo_appID, userID).Return(nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(true)
+		mockStore.On("Delete", mock.Anytodo, todoID, userID).Return(nil)
 
-		err := service.Delete(ctx, userID, todo_appID)
+		err := service.Delete(ctx, userID, todoID)
 
 		assert.NoError(t, err)
 		mockStore.AssertExpectations(t)
@@ -464,13 +464,13 @@ func TestBusinessService_Delete(t *testing.T) {
 		mockDB := new(MockDB)
 		service := createTestBusinessService(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(false)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(false)
 
-		err := service.Delete(ctx, userID, todo_appID)
+		err := service.Delete(ctx, userID, todoID)
 
 		assert.Error(t, err)
 		assert.ErrorIs(t, err, ErrUnauthorized)
@@ -493,7 +493,7 @@ func TestBusinessService_List(t *testing.T) {
 		}
 		params := ListParams{}
 
-		mockStore.On("List", mock.Anytodo_app, 0, 10, params).Return(expectedList, nil)
+		mockStore.On("List", mock.Anytodo, 0, 10, params).Return(expectedList, nil)
 
 		result, err := service.List(ctx, 0, 10, params)
 
@@ -508,7 +508,7 @@ func TestBusinessService_List(t *testing.T) {
 		service := createTestBusinessService(mockStore, mockDB)
 
 		params := ListParams{}
-		mockStore.On("List", mock.Anytodo_app, 0, 10, params).Return(nil, pgx.ErrNoRows)
+		mockStore.On("List", mock.Anytodo, 0, 10, params).Return(nil, pgx.ErrNoRows)
 
 		result, err := service.List(ctx, 0, 10, params)
 
@@ -524,7 +524,7 @@ func TestBusinessService_List(t *testing.T) {
 
 		params := ListParams{}
 		dbError := errors.New("database connection failed")
-		mockStore.On("List", mock.Anytodo_app, 0, 10, params).Return(nil, dbError)
+		mockStore.On("List", mock.Anytodo, 0, 10, params).Return(nil, dbError)
 
 		result, err := service.List(ctx, 0, 10, params)
 
@@ -544,7 +544,7 @@ func TestBusinessService_Count(t *testing.T) {
 		service := createTestBusinessService(mockStore, mockDB)
 
 		params := CountParams{}
-		mockStore.On("Count", mock.Anytodo_app, params).Return(42, nil)
+		mockStore.On("Count", mock.Anytodo, params).Return(42, nil)
 
 		result, err := service.Count(ctx, params)
 
@@ -571,7 +571,7 @@ func TestBusinessService_CreateTypeTodo(t *testing.T) {
 		expectedTypeTodo.Id = 1
 		expectedTypeTodo.CreatedBy = 123
 
-		mockStore.On("CreateTypeTodo", mock.Anytodo_app, mock.Anytodo_appOfType("TypeTodo")).Return(&expectedTypeTodo, nil)
+		mockStore.On("CreateTypeTodo", mock.Anytodo, mock.AnytodoOfType("TypeTodo")).Return(&expectedTypeTodo, nil)
 
 		result, err := service.CreateTypeTodo(ctx, 123, true, newTypeTodo)
 

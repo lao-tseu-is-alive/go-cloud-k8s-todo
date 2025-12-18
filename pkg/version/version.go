@@ -21,10 +21,7 @@ var (
 	AppNameKebab = "go-cloud-k8s-todo"
 
 	// AppNameSnake is the snake-case version for database or directory (e.g., "user", "product")
-	AppNameSnake = "todo_app"
-
-	// AppBinary is the full binary name (e.g., "userServer")
-	AppBinary = "todoAppServer"
+	AppNameSnake = "todo"
 
 	// Repository is the GitHub repo
 	Repository = "github.com/lao-tseu-is-alive/go-cloud-k8s-todo"

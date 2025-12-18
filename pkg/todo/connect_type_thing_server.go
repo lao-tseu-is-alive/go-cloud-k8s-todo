@@ -1,4 +1,4 @@
-// Package todo_app provides Connect RPC handlers for the TypeTodoService.
+// Package todo provides Connect RPC handlers for the TypeTodoService.
 package todo
 
 import (
@@ -8,8 +8,8 @@ import (
 
 	"connectrpc.com/connect"
 	"github.com/jackc/pgx/v5"
-	todo_appv1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1"
-	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1/todo_appv1connect"
+	todov1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1"
+	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1/todov1connect"
 )
 
 // TypeTodoConnectServer implements the TypeTodoServiceHandler interface.
@@ -19,7 +19,7 @@ type TypeTodoConnectServer struct {
 	Log             *slog.Logger
 
 	// Embed the unimplemented handler for forward compatibility
-	todo_appv1connect.UnimplementedTypeTodoServiceHandler
+	todov1connect.UnimplementedTypeTodoServiceHandler
 }
 
 // NewTypeTodoConnectServer creates a new TypeTodoConnectServer.
@@ -58,11 +58,11 @@ func (s *TypeTodoConnectServer) mapErrorToConnect(err error) *connect.Error {
 // TypeTodoService RPC Methods
 // =============================================================================
 
-// List returns a list of type todo_apps
+// List returns a list of type todos
 func (s *TypeTodoConnectServer) List(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoListRequest],
-) (*connect.Response[todo_appv1.TypeTodoListResponse], error) {
+	req *connect.Request[todov1.TypeTodoListRequest],
+) (*connect.Response[todov1.TypeTodoListResponse], error) {
 	s.Log.Info("Connect: TypeTodo.List called")
 
 	// User info injected by AuthInterceptor
@@ -98,24 +98,24 @@ func (s *TypeTodoConnectServer) List(
 	if err != nil {
 		if errors.Is(err, pgx.ErrNoRows) {
 			// Return empty list instead of error
-			return connect.NewResponse(&todo_appv1.TypeTodoListResponse{
-				TypeTodos: []*todo_appv1.TypeTodoList{},
+			return connect.NewResponse(&todov1.TypeTodoListResponse{
+				TypeTodos: []*todov1.TypeTodoList{},
 			}), nil
 		}
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.TypeTodoListResponse{
+	response := &todov1.TypeTodoListResponse{
 		TypeTodos: DomainTypeTodoListSliceToProto(list),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Create creates a new type todo_app
+// Create creates a new type todo
 func (s *TypeTodoConnectServer) Create(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoCreateRequest],
-) (*connect.Response[todo_appv1.TypeTodoCreateResponse], error) {
+	req *connect.Request[todov1.TypeTodoCreateRequest],
+) (*connect.Response[todov1.TypeTodoCreateResponse], error) {
 	s.Log.Info("Connect: TypeTodo.Create called")
 
 	// User info injected by AuthInterceptor
@@ -124,7 +124,7 @@ func (s *TypeTodoConnectServer) Create(
 
 	protoTypeTodo := req.Msg.TypeTodo
 	if protoTypeTodo == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("type_todo_app is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("type_todo is required"))
 	}
 
 	domainTypeTodo := ProtoTypeTodoToDomain(protoTypeTodo)
@@ -134,17 +134,17 @@ func (s *TypeTodoConnectServer) Create(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.TypeTodoCreateResponse{
+	response := &todov1.TypeTodoCreateResponse{
 		TypeTodo: DomainTypeTodoToProto(createdTypeTodo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Get retrieves a type todo_app by ID
+// Get retrieves a type todo by ID
 func (s *TypeTodoConnectServer) Get(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoGetRequest],
-) (*connect.Response[todo_appv1.TypeTodoGetResponse], error) {
+	req *connect.Request[todov1.TypeTodoGetRequest],
+) (*connect.Response[todov1.TypeTodoGetResponse], error) {
 	s.Log.Info("Connect: TypeTodo.Get called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -155,17 +155,17 @@ func (s *TypeTodoConnectServer) Get(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.TypeTodoGetResponse{
+	response := &todov1.TypeTodoGetResponse{
 		TypeTodo: DomainTypeTodoToProto(typeTodo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Update updates a type todo_app
+// Update updates a type todo
 func (s *TypeTodoConnectServer) Update(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoUpdateRequest],
-) (*connect.Response[todo_appv1.TypeTodoUpdateResponse], error) {
+	req *connect.Request[todov1.TypeTodoUpdateRequest],
+) (*connect.Response[todov1.TypeTodoUpdateResponse], error) {
 	s.Log.Info("Connect: TypeTodo.Update called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -174,7 +174,7 @@ func (s *TypeTodoConnectServer) Update(
 
 	protoTypeTodo := req.Msg.TypeTodo
 	if protoTypeTodo == nil {
-		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("type_todo_app data is required"))
+		return nil, connect.NewError(connect.CodeInvalidArgument, errors.New("type_todo data is required"))
 	}
 
 	domainTypeTodo := ProtoTypeTodoToDomain(protoTypeTodo)
@@ -184,17 +184,17 @@ func (s *TypeTodoConnectServer) Update(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.TypeTodoUpdateResponse{
+	response := &todov1.TypeTodoUpdateResponse{
 		TypeTodo: DomainTypeTodoToProto(updatedTypeTodo),
 	}
 	return connect.NewResponse(response), nil
 }
 
-// Delete deletes a type todo_app
+// Delete deletes a type todo
 func (s *TypeTodoConnectServer) Delete(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoDeleteRequest],
-) (*connect.Response[todo_appv1.TypeTodoDeleteResponse], error) {
+	req *connect.Request[todov1.TypeTodoDeleteRequest],
+) (*connect.Response[todov1.TypeTodoDeleteResponse], error) {
 	s.Log.Info("Connect: TypeTodo.Delete called", "id", req.Msg.Id)
 
 	// User info injected by AuthInterceptor
@@ -206,14 +206,14 @@ func (s *TypeTodoConnectServer) Delete(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	return connect.NewResponse(&todo_appv1.TypeTodoDeleteResponse{}), nil
+	return connect.NewResponse(&todov1.TypeTodoDeleteResponse{}), nil
 }
 
-// Count returns the number of type todo_apps
+// Count returns the number of type todos
 func (s *TypeTodoConnectServer) Count(
 	ctx context.Context,
-	req *connect.Request[todo_appv1.TypeTodoCountRequest],
-) (*connect.Response[todo_appv1.TypeTodoCountResponse], error) {
+	req *connect.Request[todov1.TypeTodoCountRequest],
+) (*connect.Response[todov1.TypeTodoCountResponse], error) {
 	s.Log.Info("Connect: TypeTodo.Count called")
 
 	// User info injected by AuthInterceptor
@@ -237,7 +237,7 @@ func (s *TypeTodoConnectServer) Count(
 		return nil, s.mapErrorToConnect(err)
 	}
 
-	response := &todo_appv1.TypeTodoCountResponse{
+	response := &todov1.TypeTodoCountResponse{
 		Count: count,
 	}
 	return connect.NewResponse(response), nil

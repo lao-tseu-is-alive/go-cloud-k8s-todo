@@ -28,7 +28,7 @@ A modern **Proto-first** microservice for managing "todoApps" — built with Go,
 ```mermaid
 graph TB
     subgraph Clients["📱 Clients"]
-        REST["🌐 REST<br/>GET /goapi/v1/todo_app"]
+        REST["🌐 REST<br/>GET /goapi/v1/todo"]
         CONNECT["⚡ Connect<br/>JSON / Proto"]
         GRPC["🔌 gRPC"]
     end
@@ -68,18 +68,18 @@ graph TB
 The API is defined using **Protocol Buffers** as the single source of truth:
 
 ```
-api/proto/todo_app/v1/
-├── todo_app.proto           # todoAppService definitions
-└── type_todo_app.proto      # TypetodoAppService definitions
+api/proto/todo/v1/
+├── todo.proto           # todoAppService definitions
+└── type_todo.proto      # TypetodoAppService definitions
 ```
 
 ### Generated Artifacts
 
 | Source | Generated | Purpose |
 |--------|-----------|---------|
-| `.proto` files | `gen/todo_app/v1/*.go` | Go types & gRPC stubs |
-| `.proto` files | `gen/todo_app/v1/todo_appv1connect/*.go` | Connect handlers |
-| `.proto` files | `api/openapi/todo_app.yaml` | OpenAPI 3.0 spec |
+| `.proto` files | `gen/todo/v1/*.go` | Go types & gRPC stubs |
+| `.proto` files | `gen/todo/v1/todov1connect/*.go` | Connect handlers |
+| `.proto` files | `api/openapi/todo.yaml` | OpenAPI 3.0 spec |
 
 ### Regenerate Code
 
@@ -99,31 +99,31 @@ All endpoints are prefixed with `/goapi/v1` and require JWT authentication.
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/goapi/v1/todo_app` | List todo_apps |
-| `POST` | `/goapi/v1/todo_app` | Create a todo_app |
-| `GET` | `/goapi/v1/todo_app/{id}` | Get todo_app by ID |
-| `PUT` | `/goapi/v1/todo_app/{id}` | Update a todo_app |
-| `DELETE` | `/goapi/v1/todo_app/{id}` | Delete a todo_app |
-| `GET` | `/goapi/v1/todo_app/search` | Search todo_apps |
-| `GET` | `/goapi/v1/todo_app/count` | Count todo_apps |
-| `GET` | `/goapi/v1/todo_app/geojson` | Get GeoJSON |
+| `GET` | `/goapi/v1/todo` | List todos |
+| `POST` | `/goapi/v1/todo` | Create a todo |
+| `GET` | `/goapi/v1/todo/{id}` | Get todo by ID |
+| `PUT` | `/goapi/v1/todo/{id}` | Update a todo |
+| `DELETE` | `/goapi/v1/todo/{id}` | Delete a todo |
+| `GET` | `/goapi/v1/todo/search` | Search todos |
+| `GET` | `/goapi/v1/todo/count` | Count todos |
+| `GET` | `/goapi/v1/todo/geojson` | Get GeoJSON |
 
 ### TypetodoApp Resources
 
 | Method | Endpoint | Description |
 |--------|----------|-------------|
-| `GET` | `/goapi/v1/types` | List type todo_apps |
-| `POST` | `/goapi/v1/types` | Create type todo_app |
-| `GET` | `/goapi/v1/types/{id}` | Get type todo_app by ID |
-| `PUT` | `/goapi/v1/types/{id}` | Update type todo_app |
-| `DELETE` | `/goapi/v1/types/{id}` | Delete type todo_app |
-| `GET` | `/goapi/v1/types/count` | Count type todo_apps |
+| `GET` | `/goapi/v1/types` | List type todos |
+| `POST` | `/goapi/v1/types` | Create type todo |
+| `GET` | `/goapi/v1/types/{id}` | Get type todo by ID |
+| `PUT` | `/goapi/v1/types/{id}` | Update type todo |
+| `DELETE` | `/goapi/v1/types/{id}` | Delete type todo |
+| `GET` | `/goapi/v1/types/count` | Count type todos |
 
 ### Connect RPC Endpoints
 
 ```bash
 # Connect JSON format
-curl -X POST http://localhost:9090/todo_app.v1.todoAppService/List \
+curl -X POST http://localhost:9090/todo.v1.todoAppService/List \
   -H "Content-Type: application/json" \
   -H "Authorization: Bearer $TOKEN" \
   -d '{"limit": 10}'
@@ -146,7 +146,7 @@ curl -X POST http://localhost:9090/todo_app.v1.todoAppService/List \
 export PORT=9090
 export DB_HOST=localhost
 export DB_PORT=5432
-export DB_NAME=todo_app
+export DB_NAME=todo
 export DB_USER=your_user
 export DB_PASSWORD=your_password
 export JWT_SECRET=your_jwt_secret
@@ -195,7 +195,7 @@ Find all available versions in the [Packages section](https://github.com/lao-tse
 ## 📚 Documentation
 
 - 📋 [Requirements](./documentation/Requirements.md) — Functional and system requirements
-- 🔗 [OpenAPI Spec (YAML)](./api/openapi/todo_app.yaml) — Generated from proto
+- 🔗 [OpenAPI Spec (YAML)](./api/openapi/todo.yaml) — Generated from proto
 - 🌐 [Swagger UI](https://your-github-account.github.io/go-cloud-k8s-todo/) — Interactive API docs
 
 ---
@@ -221,14 +221,14 @@ Find all available versions in the [Packages section](https://github.com/lao-tse
 ```
 go-cloud-k8s-todo/
 ├── api/
-│   ├── proto/todo_app/v1/          # 📋 Proto definitions (source of truth)
+│   ├── proto/todo/v1/          # 📋 Proto definitions (source of truth)
 │   └── openapi/                  # 📄 Generated OpenAPI specs
 ├── cmd/
 │   └── todoAppServer/   # 🚀 Main application entry point
 ├── gen/
-│   └── todo_app/v1/                # ⚙️ Generated Go code from protos
+│   └── todo/v1/                # ⚙️ Generated Go code from protos
 ├── pkg/
-│   └── todo_app/                   # 📦 Business logic
+│   └── todo/                   # 📦 Business logic
 │       ├── business_service.go  # Core business operations
 │       ├── connect_server.go    # Connect RPC handlers
 │       ├── mappers.go           # Domain ↔ Proto conversion

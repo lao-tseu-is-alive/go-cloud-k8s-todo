@@ -1,4 +1,4 @@
-// Package todo_app provides mappers between domain types and Proto types.
+// Package todo provides mappers between domain types and Proto types.
 // This bridges the gap between the database layer (Domain) and the API layer (Proto).
 package todo
 
@@ -6,7 +6,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
-	todo_appv1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1"
+	todov1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1"
 	"google.golang.org/protobuf/types/known/structpb"
 	"google.golang.org/protobuf/types/known/timestamppb"
 )
@@ -120,11 +120,11 @@ func stringToStatus(s string) *TodoStatus {
 // =============================================================================
 
 // DomainTodoToProto converts a domain Todo to a Proto Todo
-func DomainTodoToProto(t *Todo) *todo_appv1.Todo {
+func DomainTodoToProto(t *Todo) *todov1.Todo {
 	if t == nil {
 		return nil
 	}
-	return &todo_appv1.Todo{
+	return &todov1.Todo{
 		Id:                t.Id.String(),
 		TypeId:            t.TypeId,
 		Name:              t.Name,
@@ -159,7 +159,7 @@ func DomainTodoToProto(t *Todo) *todo_appv1.Todo {
 
 // ProtoTodoToDomain converts a Proto Todo to a domain Todo.
 // Returns an error if UUID parsing fails.
-func ProtoTodoToDomain(t *todo_appv1.Todo) (*Todo, error) {
+func ProtoTodoToDomain(t *todov1.Todo) (*Todo, error) {
 	if t == nil {
 		return nil, nil
 	}
@@ -207,11 +207,11 @@ func ProtoTodoToDomain(t *todo_appv1.Todo) (*Todo, error) {
 }
 
 // DomainTodoListToProto converts a domain TodoList to a Proto TodoList
-func DomainTodoListToProto(t *TodoList) *todo_appv1.TodoList {
+func DomainTodoListToProto(t *TodoList) *todov1.TodoList {
 	if t == nil {
 		return nil
 	}
-	return &todo_appv1.TodoList{
+	return &todov1.TodoList{
 		Id:          t.Id.String(),
 		TypeId:      t.TypeId,
 		Name:        t.Name,
@@ -228,11 +228,11 @@ func DomainTodoListToProto(t *TodoList) *todo_appv1.TodoList {
 }
 
 // DomainTodoListSliceToProto converts a slice of domain TodoList to Proto TodoList
-func DomainTodoListSliceToProto(items []*TodoList) []*todo_appv1.TodoList {
+func DomainTodoListSliceToProto(items []*TodoList) []*todov1.TodoList {
 	if items == nil {
 		return nil
 	}
-	result := make([]*todo_appv1.TodoList, len(items))
+	result := make([]*todov1.TodoList, len(items))
 	for i, item := range items {
 		result[i] = DomainTodoListToProto(item)
 	}
@@ -244,11 +244,11 @@ func DomainTodoListSliceToProto(items []*TodoList) []*todo_appv1.TodoList {
 // =============================================================================
 
 // DomainTypeTodoToProto converts a domain TypeTodo to a Proto TypeTodo
-func DomainTypeTodoToProto(t *TypeTodo) *todo_appv1.TypeTodo {
+func DomainTypeTodoToProto(t *TypeTodo) *todov1.TypeTodo {
 	if t == nil {
 		return nil
 	}
-	return &todo_appv1.TypeTodo{
+	return &todov1.TypeTodo{
 		Id:                t.Id,
 		Name:              t.Name,
 		Description:       derefString(t.Description),
@@ -274,7 +274,7 @@ func DomainTypeTodoToProto(t *TypeTodo) *todo_appv1.TypeTodo {
 }
 
 // ProtoTypeTodoToDomain converts a Proto TypeTodo to a domain TypeTodo
-func ProtoTypeTodoToDomain(t *todo_appv1.TypeTodo) *TypeTodo {
+func ProtoTypeTodoToDomain(t *todov1.TypeTodo) *TypeTodo {
 	if t == nil {
 		return nil
 	}
@@ -304,11 +304,11 @@ func ProtoTypeTodoToDomain(t *todo_appv1.TypeTodo) *TypeTodo {
 }
 
 // DomainTypeTodoListToProto converts a domain TypeTodoList to a Proto TypeTodoList
-func DomainTypeTodoListToProto(t *TypeTodoList) *todo_appv1.TypeTodoList {
+func DomainTypeTodoListToProto(t *TypeTodoList) *todov1.TypeTodoList {
 	if t == nil {
 		return nil
 	}
-	return &todo_appv1.TypeTodoList{
+	return &todov1.TypeTodoList{
 		Id:           t.Id,
 		Name:         t.Name,
 		ExternalId:   derefInt32(t.ExternalId),
@@ -321,11 +321,11 @@ func DomainTypeTodoListToProto(t *TypeTodoList) *todo_appv1.TypeTodoList {
 }
 
 // DomainTypeTodoListSliceToProto converts a slice of domain TypeTodoList to Proto
-func DomainTypeTodoListSliceToProto(items []*TypeTodoList) []*todo_appv1.TypeTodoList {
+func DomainTypeTodoListSliceToProto(items []*TypeTodoList) []*todov1.TypeTodoList {
 	if items == nil {
 		return nil
 	}
-	result := make([]*todo_appv1.TypeTodoList, len(items))
+	result := make([]*todov1.TypeTodoList, len(items))
 	for i, item := range items {
 		result[i] = DomainTypeTodoListToProto(item)
 	}

@@ -19,5 +19,5 @@ plugins:
       - json_names_for_fields=true  # Forces camelCase (standard JSON)
       - output_format=yaml
       - allow_merge=true
-      - merge_file_name=todo_app       # Merges everytodo_app into todo_app.swagger.yaml
+      - merge_file_name=todo       # Merges everytodo into todo.swagger.yaml
       - simple_operation_ids=true   # Makes operation IDs cleaner (e.g. "List" instead of "todoAppService_List")

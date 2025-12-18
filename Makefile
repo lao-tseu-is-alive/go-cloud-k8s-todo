@@ -18,8 +18,8 @@ else
 	DB_DRIVER ?= postgres
 	DB_HOST ?= 127.0.0.1
 	DB_PORT ?= 5432
-	DB_NAME ?= todo_app
-	DB_USER ?= todo_app
+	DB_NAME ?= todo
+	DB_USER ?= todo
 	# DB_PASSWORD should be defined in your env or in github secrets
 	DB_SSL_MODE ?= disable
 endif
@@ -167,7 +167,7 @@ endif
 .PHONY: openapi-codegen
 ## openapi-codegen:	will generate helper Go code for types & server based on OpenApi spec in api/app.yml
 openapi-codegen: dependencies-openapi
-	oapi-codegen --old-config-style -generate types -o pkg/todo_app/todo_app_types.gen.go -package todo_app api/openapi/todo_app.swagger.yaml
+	oapi-codegen --old-config-style -generate types -o pkg/todo/todo_types.gen.go -package todo api/openapi/todo.swagger.yaml
 
 
 .PHONY: build-container-image
@@ -180,8 +180,8 @@ build-container-image:
 .PHONY: xo-codegen
 ## xo-codegen:	will generate helper Go code for database queries in models directory
 xo-codegen: dependencies-xo
-	xo schema schema -s public --go-pkg=todo_app --src templates_xo -o models ${DB_DRIVER}://${DB_USER}:=@${DB_HOST}/${DB_NAME}
-	#xo schema schema -s public --go-pkg=todo_app --src templates_xo -o pkg/todo_app ${DB_DRIVER}://${DB_USER}:=@${DB_HOST}/${DB_NAME}
+	xo schema schema -s public --go-pkg=todo --src templates_xo -o models ${DB_DRIVER}://${DB_USER}:=@${DB_HOST}/${DB_NAME}
+	#xo schema schema -s public --go-pkg=todo --src templates_xo -o pkg/todo ${DB_DRIVER}://${DB_USER}:=@${DB_HOST}/${DB_NAME}
 
 .PHONY: help
 help: Makefile

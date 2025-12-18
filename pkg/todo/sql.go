@@ -15,10 +15,10 @@ SELECT
        _created_at as created_at,
 	   st_x(position) as pos_x,
        st_y(position) as pos_y
-FROM todo.todo_app
+FROM todo.todo
 WHERE _deleted = false AND position IS NOT NULL
 `
-	todo_appListOrderBy = " ORDER BY _created_at DESC LIMIT $1 OFFSET $2;"
+	todoListOrderBy     = " ORDER BY _created_at DESC LIMIT $1 OFFSET $2;"
 	listTodosConditions = `
  AND type_id = coalesce($3, type_id)
  AND _created_by = coalesce($4, _created_by)
@@ -32,7 +32,7 @@ WHERE _deleted = false AND position IS NOT NULL
  AND text_search @@ plainto_tsquery('french', unaccent($6))
 `
 	createTodo = `
-INSERT INTO todo.todo_app
+INSERT INTO todo.todo
 (id, type_id, name, description, comment, external_id, external_ref,
  build_at, status, contained_by, contained_by_old,validated, validated_time, validated_by,
  managed_by, _created_at, _created_by, more_data, text_search, position)
@@ -74,22 +74,22 @@ VALUES ($1, $2, $3, $4, $5, $6, $7,
        more_data, 
        round(st_x(ST_Centroid(position))::numeric, 2) AS pos_x,
        round(st_y(ST_Centroid(position))::numeric, 2) AS pos_y
-FROM todo.todo_app
+FROM todo.todo
 WHERE id = $1;
 `
-	existTodo        = `SELECT COUNT(*) FROM todo.todo_app WHERE id = $1;`
-	isActiveTodo     = `SELECT COUNT(*) FROM todo.todo_app WHERE inactivated=false AND id = $1;`
-	existTodoOwnedBy = `SELECT COUNT(*) FROM todo.todo_app WHERE id = $1 AND _created_by = $2;`
-	countTodo        = `SELECT COUNT(*) FROM todo.todo_app `
+	existTodo        = `SELECT COUNT(*) FROM todo.todo WHERE id = $1;`
+	isActiveTodo     = `SELECT COUNT(*) FROM todo.todo WHERE inactivated=false AND id = $1;`
+	existTodoOwnedBy = `SELECT COUNT(*) FROM todo.todo WHERE id = $1 AND _created_by = $2;`
+	countTodo        = `SELECT COUNT(*) FROM todo.todo `
 	deleteTodo       = `
-UPDATE todo.todo_app
+UPDATE todo.todo
 SET
     _deleted = true,
     _deleted_by = $1,
     _deleted_at = CURRENT_TIMESTAMP
 WHERE id = $2;`
 	updateTodo = `
-UPDATE todo.todo_app SET
+UPDATE todo.todo SET
        type_id = $2,
        name = $3,
        description = $4,
@@ -133,12 +133,12 @@ FROM (SELECT 'FeatureCollection'                         AS type,
                                              inactivated,
                                              validated,
                                              status,
-										     (SELECT icon_path FROM todo.type_todo_app tt WHERE tt.id = t.type_id) as icon_path,
+										     (SELECT icon_path FROM todo.type_todo tt WHERE tt.id = t.type_id) as icon_path,
                                              _created_by    as created_by,
                                              _created_at    as created_at,
                                              st_x(position) as pos_x,
                                              st_y(position) as pos_y) AS l)) AS properties
-            FROM todo.todo_app t
+            FROM todo.todo t
             WHERE _deleted = false AND position IS NOT NULL
                
 `

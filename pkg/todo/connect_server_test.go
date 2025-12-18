@@ -9,7 +9,7 @@ import (
 	"connectrpc.com/connect"
 	"github.com/google/uuid"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/golog"
-	todo_appv1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1"
+	todov1 "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/mock"
 )
@@ -61,10 +61,10 @@ func TestTodoConnectServer_List(t *testing.T) {
 			{Id: uuid.New(), Name: "Todo 1", CreatedAt: &now},
 			{Id: uuid.New(), Name: "Todo 2", CreatedAt: &now},
 		}
-		mockStore.On("List", mock.Anytodo_app, 0, 50, ListParams{}).Return(expectedList, nil)
+		mockStore.On("List", mock.Anytodo, 0, 50, ListParams{}).Return(expectedList, nil)
 
 		// Create request and context with user
-		req := createConnectRequest(&todo_appv1.ListRequest{Limit: 0, Offset: 0})
+		req := createConnectRequest(&todov1.ListRequest{Limit: 0, Offset: 0})
 		ctx := contextWithUser(123, false)
 
 		// Call handler
@@ -87,9 +87,9 @@ func TestTodoConnectServer_List(t *testing.T) {
 		expectedList := []*TodoList{
 			{Id: uuid.New(), Name: "Todo 3", CreatedAt: &now},
 		}
-		mockStore.On("List", mock.Anytodo_app, 10, 5, ListParams{}).Return(expectedList, nil)
+		mockStore.On("List", mock.Anytodo, 10, 5, ListParams{}).Return(expectedList, nil)
 
-		req := createConnectRequest(&todo_appv1.ListRequest{Limit: 5, Offset: 10})
+		req := createConnectRequest(&todov1.ListRequest{Limit: 5, Offset: 10})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.List(ctx, req)
@@ -107,23 +107,23 @@ func TestTodoConnectServer_Get(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		expectedTodo := &Todo{
-			Id:   todo_appID,
+			Id:   todoID,
 			Name: "Test Todo",
 		}
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("Get", mock.Anytodo_app, todo_appID).Return(expectedTodo, nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("Get", mock.Anytodo, todoID).Return(expectedTodo, nil)
 
-		req := createConnectRequest(&todo_appv1.GetRequest{Id: todo_appID.String()})
+		req := createConnectRequest(&todov1.GetRequest{Id: todoID.String()})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.Get(ctx, req)
 
 		assert.NoError(t, err)
 		assert.NotNil(t, resp)
-		assert.Equal(t, todo_appID.String(), resp.Msg.Todo.Id)
+		assert.Equal(t, todoID.String(), resp.Msg.Todo.Id)
 		assert.Equal(t, "Test Todo", resp.Msg.Todo.Name)
 		mockStore.AssertExpectations(t)
 	})
@@ -133,11 +133,11 @@ func TestTodoConnectServer_Get(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(false)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(false)
 
-		req := createConnectRequest(&todo_appv1.GetRequest{Id: todo_appID.String()})
+		req := createConnectRequest(&todov1.GetRequest{Id: todoID.String()})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.Get(ctx, req)
@@ -155,7 +155,7 @@ func TestTodoConnectServer_Get(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		req := createConnectRequest(&todo_appv1.GetRequest{Id: "not-a-uuid"})
+		req := createConnectRequest(&todov1.GetRequest{Id: "not-a-uuid"})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.Get(ctx, req)
@@ -174,19 +174,19 @@ func TestTodoConnectServer_Create(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		expectedTodo := &Todo{
-			Id:        todo_appID,
+			Id:        todoID,
 			Name:      "New Todo",
 			CreatedBy: 123,
 		}
 
-		mockDB.On("GetQueryInt", mock.Anytodo_app, existTypeTodo, mock.Anytodo_app).Return(1, nil)
-		mockStore.On("Exist", mock.Anytodo_app, mock.Anytodo_appOfType("uuid.UUID")).Return(false)
-		mockStore.On("Create", mock.Anytodo_app, mock.Anytodo_appOfType("Todo")).Return(expectedTodo, nil)
+		mockDB.On("GetQueryInt", mock.Anytodo, existTypeTodo, mock.Anytodo).Return(1, nil)
+		mockStore.On("Exist", mock.Anytodo, mock.AnytodoOfType("uuid.UUID")).Return(false)
+		mockStore.On("Create", mock.Anytodo, mock.AnytodoOfType("Todo")).Return(expectedTodo, nil)
 
-		req := createConnectRequest(&todo_appv1.CreateRequest{
-			Todo: &todo_appv1.Todo{
+		req := createConnectRequest(&todov1.CreateRequest{
+			Todo: &todov1.Todo{
 				Name: "New Todo",
 			},
 		})
@@ -200,12 +200,12 @@ func TestTodoConnectServer_Create(t *testing.T) {
 		mockStore.AssertExpectations(t)
 	})
 
-	t.Run("validation error - missing todo_app", func(t *testing.T) {
+	t.Run("validation error - missing todo", func(t *testing.T) {
 		mockStore := new(MockStorage)
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		req := createConnectRequest(&todo_appv1.CreateRequest{Todo: nil})
+		req := createConnectRequest(&todov1.CreateRequest{Todo: nil})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.Create(ctx, req)
@@ -224,14 +224,14 @@ func TestTodoConnectServer_Delete(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(true)
-		mockStore.On("Delete", mock.Anytodo_app, todo_appID, userID).Return(nil)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(true)
+		mockStore.On("Delete", mock.Anytodo, todoID, userID).Return(nil)
 
-		req := createConnectRequest(&todo_appv1.DeleteRequest{Id: todo_appID.String()})
+		req := createConnectRequest(&todov1.DeleteRequest{Id: todoID.String()})
 		ctx := contextWithUser(userID, false)
 
 		resp, err := server.Delete(ctx, req)
@@ -246,13 +246,13 @@ func TestTodoConnectServer_Delete(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		todo_appID := uuid.New()
+		todoID := uuid.New()
 		userID := int32(123)
 
-		mockStore.On("Exist", mock.Anytodo_app, todo_appID).Return(true)
-		mockStore.On("IsUserOwner", mock.Anytodo_app, todo_appID, userID).Return(false)
+		mockStore.On("Exist", mock.Anytodo, todoID).Return(true)
+		mockStore.On("IsUserOwner", mock.Anytodo, todoID, userID).Return(false)
 
-		req := createConnectRequest(&todo_appv1.DeleteRequest{Id: todo_appID.String()})
+		req := createConnectRequest(&todov1.DeleteRequest{Id: todoID.String()})
 		ctx := contextWithUser(userID, false)
 
 		resp, err := server.Delete(ctx, req)
@@ -272,9 +272,9 @@ func TestTodoConnectServer_Count(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTodoConnectServer(mockStore, mockDB)
 
-		mockStore.On("Count", mock.Anytodo_app, CountParams{}).Return(42, nil)
+		mockStore.On("Count", mock.Anytodo, CountParams{}).Return(42, nil)
 
-		req := createConnectRequest(&todo_appv1.CountRequest{})
+		req := createConnectRequest(&todov1.CountRequest{})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.Count(ctx, req)
@@ -302,9 +302,9 @@ func TestTypeTodoConnectServer_List(t *testing.T) {
 			{Id: 2, Name: "Type 2", CreatedAt: now},
 		}
 
-		mockStore.On("ListTypeTodo", mock.Anytodo_app, 0, 250, TypeTodoListParams{}).Return(expectedList, nil)
+		mockStore.On("ListTypeTodo", mock.Anytodo, 0, 250, TypeTodoListParams{}).Return(expectedList, nil)
 
-		req := createConnectRequest(&todo_appv1.TypeTodoListRequest{})
+		req := createConnectRequest(&todov1.TypeTodoListRequest{})
 		ctx := contextWithUser(123, false)
 
 		resp, err := server.List(ctx, req)
@@ -328,10 +328,10 @@ func TestTypeTodoConnectServer_Create(t *testing.T) {
 			CreatedBy: 123,
 		}
 
-		mockStore.On("CreateTypeTodo", mock.Anytodo_app, mock.Anytodo_appOfType("TypeTodo")).Return(expectedTypeTodo, nil)
+		mockStore.On("CreateTypeTodo", mock.Anytodo, mock.AnytodoOfType("TypeTodo")).Return(expectedTypeTodo, nil)
 
-		req := createConnectRequest(&todo_appv1.TypeTodoCreateRequest{
-			TypeTodo: &todo_appv1.TypeTodo{
+		req := createConnectRequest(&todov1.TypeTodoCreateRequest{
+			TypeTodo: &todov1.TypeTodo{
 				Name: "New Type",
 			},
 		})
@@ -350,8 +350,8 @@ func TestTypeTodoConnectServer_Create(t *testing.T) {
 		mockDB := new(MockDB)
 		server := createTestTypeTodoConnectServer(mockStore, mockDB)
 
-		req := createConnectRequest(&todo_appv1.TypeTodoCreateRequest{
-			TypeTodo: &todo_appv1.TypeTodo{
+		req := createConnectRequest(&todov1.TypeTodoCreateRequest{
+			TypeTodo: &todov1.TypeTodo{
 				Name: "New Type",
 			},
 		})

@@ -27,8 +27,8 @@ import (
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/golog"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/metadata"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-common-libs/pkg/tools"
-	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo_app/v1/todo_appv1connect"
-	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/todo_app"
+	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1/todov1connect"
+	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/todo"
 	"github.com/lao-tseu-is-alive/go-cloud-k8s-todo/pkg/version"
 	"github.com/prometheus/client_golang/prometheus"
 )
@@ -173,13 +173,13 @@ func initMetadataOrFail(db database.DB, l *slog.Logger) {
 	metaDataCtx, metaDataCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer metaDataCancel()
 	metadataService.CreateMetadataTableOrFail(metaDataCtx)
-	found, ver := metadataService.GetServiceVersionOrFail(metaDataCtx, version.APP)
+	found, ver := metadataService.GetServiceVersionOrFail(metaDataCtx, version.AppName)
 	if found {
-		l.Info("retrieved service", "app", version.APP, "version", ver, "status", "found")
+		l.Info("retrieved service", "app", version.AppName, "version", ver, "status", "found")
 	} else {
-		l.Info("impossible to retrieved service", "app", version.APP, "version", ver, "status", "not found")
+		l.Info("impossible to retrieved service", "app", version.AppName, "version", ver, "status", "not found")
 	}
-	metadataService.SetServiceVersionOrFail(metaDataCtx, version.APP, version.VERSION)
+	metadataService.SetServiceVersionOrFail(metaDataCtx, version.AppName, version.Version)
 }
 
 func runMigrationsOrFail(dbDsn string) {
@@ -213,10 +213,10 @@ func main() {
 	if err != nil {
 		log.Fatalf("💥💥 error getting log level: %v'\n", err)
 	}
-	l := golog.NewLogger("simple", logWriter, logLevel, version.APP)
-	l.Info("🚀 Starting", "app", version.APP, "version", version.VERSION, "revision", version.REVISION, "build", version.BuildStamp, "repository", version.REPOSITORY)
+	l := golog.NewLogger("simple", logWriter, logLevel, version.AppName)
+	l.Info("🚀 Starting", "app", version.AppName, "version", version.Version, "revision", version.Revision, "build", version.BuildStamp, "repository", version.Repository)
 
-	dbDsn, err := config.GetPgDbDsnUrl(defaultDBIp, defaultDBPort, tools.ToSnakeCase(version.APP), version.AppSnake, defaultDBSslMode)
+	dbDsn, err := config.GetPgDbDsnUrl(defaultDBIp, defaultDBPort, tools.ToSnakeCase(version.AppName), version.AppNameSnake, defaultDBSslMode)
 	if err != nil {
 		l.Error("💥💥 error getting database DSN", "error", err)
 		os.Exit(1)
@@ -249,16 +249,16 @@ func main() {
 	jwtStatusUrl := config.GetJwtStatusUrl(defaultJwtStatusUrl)
 
 	myVersionReader := goHttpEcho.NewSimpleVersionReader(
-		version.APP,
-		version.VERSION,
-		version.REPOSITORY,
-		version.REVISION,
+		version.AppName,
+		version.Version,
+		version.Repository,
+		version.Revision,
 		version.BuildStamp,
 		jwtAuthUrl,
 		jwtStatusUrl,
 	)
 	// Create a new JWT checker
-	myJwt, err := goHttpEcho.GetNewJwtCheckerFromConfig(version.APP, 60, l)
+	myJwt, err := goHttpEcho.GetNewJwtCheckerFromConfig(version.AppName, 60, l)
 	if err != nil {
 		l.Error("💥💥 error creating JWT checker", "error", err)
 		os.Exit(1)
@@ -316,7 +316,7 @@ func main() {
 	// begin prometheus stuff to create a custom counter metric
 	customCounter := prometheus.NewCounter( // create new counter metric. This is replacement for `prometheus.Metric` struct
 		prometheus.CounterOpts{
-			Name: fmt.Sprintf("%s_custom_requests_total", version.APP),
+			Name: fmt.Sprintf("%s_custom_requests_total", version.AppName),
 			Help: "How many HTTP requests processed, partitioned by status code and HTTP method.",
 		},
 	)
@@ -333,7 +333,7 @@ func main() {
 		Skipper: func(c echo.Context) bool {
 			return strings.HasPrefix(c.Path(), "/health")
 		},
-		Subsystem: version.APP,
+		Subsystem: version.AppName,
 	}
 	e.Use(echoprometheus.NewMiddlewareWithConfig(mwConfig)) // adds middleware to gather metrics
 	// end prometheus stuff to create a custom counter metric
@@ -357,10 +357,10 @@ func main() {
 
 	dbStorageCtx, dbStorageCancel := context.WithTimeout(context.Background(), 10*time.Second)
 	defer dbStorageCancel()
-	todo_appStore := todo.GetStorageInstanceOrPanic(dbStorageCtx, "pgx", db, l)
+	todoStore := todo.GetStorageInstanceOrPanic(dbStorageCtx, "pgx", db, l)
 
 	// Create business service (transport-agnostic)
-	todo_appBusinessService := todo.NewBusinessService(todo_appStore, db, l, 50)
+	todoBusinessService := todo.NewBusinessService(todoStore, db, l, 50)
 
 	// ---------------------------------------------------------
 	// Connect + Vanguard: REST/gRPC/Connect transcoding
@@ -370,28 +370,19 @@ func main() {
 	interceptors := connect.WithInterceptors(authInterceptor)
 
 	// Create Connect servers (auth is handled by interceptor, not servers)
-	todo_appConnectServer := todo.NewtodoAppConnectServer(todo_appBusinessService, l)
-	typetodoAppConnectServer := todo.NewTypetodoAppConnectServer(todo_appBusinessService, l)
+	todoConnectServer := todo.NewTodoConnectServer(todoBusinessService, l)
 
 	// Create service handlers with auth interceptor
-	_, todo_appHandler := todo_appv1connect.NewtodoAppServiceHandler(todo_appConnectServer, interceptors)
-	_, typetodoAppHandler := todo_appv1connect.NewTypetodoAppServiceHandler(typetodoAppConnectServer, interceptors)
+	_, todoHandler := todov1connect.NewTodoServiceHandler(todoConnectServer, interceptors)
 
 	// Create Vanguard services for HTTP transcoding
-	todo_appService := vanguard.NewService(
-		todo_appv1connect.todoAppServiceName,
-		todo_appHandler,
-	)
-	typetodoAppService := vanguard.NewService(
-		todo_appv1connect.TypetodoAppServiceName,
-		typetodoAppHandler,
+	todoService := vanguard.NewService(
+		todov1connect.TodoServiceName,
+		todoHandler,
 	)
 
 	// Create transcoder for REST + gRPC + Connect
-	transcoder, err := vanguard.NewTranscoder([]*vanguard.Service{
-		todo_appService,
-		typetodoAppService,
-	})
+	transcoder, err := vanguard.NewTranscoder([]*vanguard.Service{todoService})
 	if err != nil {
 		l.Error("💥💥 error failed to create vanguard transcoder", "error", err)
 		os.Exit(1)
@@ -399,17 +390,17 @@ func main() {
 
 	// Mount transcoder into Echo with /goapi/v1 prefix
 	// The transcoder handles REST endpoints defined in proto:
-	// - GET /todo_app, POST /todo_app, etc. (defined in proto HTTP annotations)
-	// - Connect endpoints: /todo_app.v1.todoAppService/*
+	// - GET /todo, POST /todo, etc. (defined in proto HTTP annotations)
+	// - Connect endpoints: /todo.v1.todoAppService/*
 	//
 	// We strip the /goapi/v1 prefix before passing to transcoder
 	transcoderWithPrefix := http.StripPrefix(defaultSecuredApi, transcoder)
 
-	e.Any(defaultSecuredApi+"/todo_app*", echo.WrapHandler(transcoderWithPrefix))
+	e.Any(defaultSecuredApi+"/todo*", echo.WrapHandler(transcoderWithPrefix))
 	e.Any(defaultSecuredApi+"/types*", echo.WrapHandler(transcoderWithPrefix))
 
 	// Connect RPC endpoints (no prefix stripping needed)
-	e.Any("/todo_app.v1.*", echo.WrapHandler(transcoder))
+	e.Any("/todo.v1.*", echo.WrapHandler(transcoder))
 
 	l.Info("🚀 Connect+Vanguard handlers mounted for REST/gRPC transcoding", "securedUrl", defaultSecuredApi)
 
