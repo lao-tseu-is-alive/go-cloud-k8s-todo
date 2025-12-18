@@ -5,29 +5,29 @@ var (
 	// -----------------------------------------------------
 
 	// AppName  is the CamelCase name of your app (e.g., "User", "Product")
-	AppName = "template4YourProjectName"
+	AppName = "todoApp"
 
 	// GoPackage  is the name of your main service go package (e.g., "user", "product")
 	// should be: all lowercase, short no hyphens, no underscores, no camelCase, usually one word
-	GoPackage = "template4gopackage"
+	GoPackage = "todo"
 
 	// ServiceName is the name of your main entity/service first letter Capital (e.g., "User", "Product")
-	ServiceName = "Template4ServiceName"
+	ServiceName = "Todo"
 
 	// DbSchemaName is the name of your main entity/service database schema can be the same as go package
-	DbSchemaName = "template_4_your_project_name_db_schema"
+	DbSchemaName = "todo"
 
 	// AppNameKebab is the kebab-case version for your github repository (e.g., "user", "product")
-	AppNameKebab = "template-4-your-project-name"
+	AppNameKebab = "go-cloud-k8s-todo"
 
 	// AppNameSnake is the snake-case version for database or directory (e.g., "user", "product")
-	AppNameSnake = "template_4_your_project_name"
+	AppNameSnake = "todo_app"
 
 	// AppBinary is the full binary name (e.g., "userServer")
-	AppBinary = "template4YourProjectNameServer"
+	AppBinary = "todoAppServer"
 
-	// Repository is the full GitHub repo URL
-	Repository = "https://github.com/your-github-account/template-4-your-project-name"
+	// Repository is the GitHub repo
+	Repository = "github.com/lao-tseu-is-alive/go-cloud-k8s-todo"
 
 	// Version starting point
 	Version = "0.0.1"
