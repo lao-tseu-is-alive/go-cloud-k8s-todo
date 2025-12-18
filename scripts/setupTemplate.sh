@@ -55,7 +55,7 @@ mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer.go ./cmd/
 mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer_test.go ./cmd/template4YourProjectNameServer/"$APP_BINARY"Server_test.go
 mv ./cmd/template4YourProjectNameServer/template4YourProjectNameFront ./cmd/template4YourProjectNameServer/"$APP_BINARY"Front
 mv ./cmd/template4YourProjectNameServer ./cmd/"$APP_BINARY"Server
-echo "Renaming cmd directories and files..."
+echo "Renaming pkg directories and files..."
 mv ./pkg/template4gopackage "./pkg/${APP_GO_PACKAGE}"
 echo "Renaming api/proto directories and files..."
 mv ./api/proto/template_4_your_project_name/v1/template_4_your_project_name.proto  "./api/proto/template_4_your_project_name/v1/$APP_GO_PACKAGE.proto"
@@ -66,7 +66,7 @@ mv ./api/proto/template_4_your_project_name/ "./api/proto/$APP_GO_PACKAGE"
 echo "Replacing strings in files..."
 
 find . -type f \
-  \( -name '*.go'  -name 'go.mod' -o -name '*.yaml' -o -name '*.yml' -o -name 'Dockerfile' -o -name 'Makefile' -o -name '*.md' -o -name 'scripts/buf_generate.sh' -o -name '*.env*' -o -name '*.sql' \) \
+  \( -name '*.go'  -name 'go.mod' -o -name '*.yaml' -o -name '*.yml' -o -name '*.proto' -o -name 'Dockerfile' -o -name 'Makefile' -o -name '*.md' -o -wholename 'scripts/buf_generate.sh' -o -name '*.env*' -o -name '*.sql' \) \
   ! -path './.git/*' ! -path './gen/*' \
   -print0 | xargs -0 sed -i '' \
     -e "s|template4YourProjectNameServer|$APP_BINARY|g" \
