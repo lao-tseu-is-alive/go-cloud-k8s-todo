@@ -1,0 +1,323 @@
+syntax = "proto3";
+
+package todo.v1;
+
+import "google/api/annotations.proto";
+import "google/api/field_behavior.proto";
+import "google/protobuf/timestamp.proto";
+import "google/protobuf/struct.proto";
+
+option go_package = "github.com/lao-tseu-is-alive/go-cloud-k8s-todo/gen/todo/v1;todov1";
+
+// =========================================================
+// Service: Todo
+// Description: API to manage Todo
+// =========================================================
+service TodoService {
+  // List returns a list of todos.
+  // Returns the todo in an array.
+  rpc List(ListRequest) returns (ListResponse) {
+    option (google.api.http) = {
+      get: "/todo"
+    };
+  }
+
+  // Create creates a new todo.
+  // Creates a new todo.
+  rpc Create(CreateRequest) returns (CreateResponse) {
+    option (google.api.http) = {
+      post: "/todo"
+      body: "todo"
+    };
+  }
+
+  // Get retrieves in backend all information about a specific todoId.
+  // Retrieve a specific todo.
+  rpc Get(GetRequest) returns (GetResponse) {
+    option (google.api.http) = {
+      get: "/todo/{id}"
+    };
+  }
+
+  // Update allows to modify information about a specific todoId.
+  // Updates the status of a todo.
+  rpc Update(UpdateRequest) returns (UpdateResponse) {
+    option (google.api.http) = {
+      put: "/todo/{id}"
+      body: "todo"
+    };
+  }
+
+  // Delete allows to delete a specific todoId.
+  // delete a todo.
+  rpc Delete(DeleteRequest) returns (DeleteResponse) {
+    option (google.api.http) = {
+      delete: "/todo/{id}"
+    };
+  }
+
+  // Search returns a list of todo based on search criterias.
+  // Returns the todo in an array.
+  rpc Search(SearchRequest) returns (SearchResponse) {
+    option (google.api.http) = {
+      get: "/todo/search"
+    };
+  }
+
+  // Count returns the number of todo based on search criterias.
+  // Returns the number of todos found after filtering with passed criterias.
+  rpc Count(CountRequest) returns (CountResponse) {
+    option (google.api.http) = {
+      get: "/todo/count"
+    };
+  }
+
+  // List returns a geoJson of todos found.
+  // Returns the geoJson of the todo selected by the given parameters.
+  rpc GeoJson(GeoJsonRequest) returns (GeoJsonResponse) {
+    option (google.api.http) = {
+      get: "/todo/geojson"
+    };
+  }
+
+  // ListByExternalId returns a list of todo filtered by externalId.
+  // Returns the todos in an array.
+  rpc ListByExternalId(ListByExternalIdRequest) returns (ListByExternalIdResponse) {
+    option (google.api.http) = {
+      get: "/todo/by-external-id/{external_id}"
+    };
+  }
+}
+
+
+// =========================================================
+// Messages: Todo
+// =========================================================
+
+message Todo {
+  // identifiant uuid v4
+  // cet Universally unique identifier (UUID) sera généré automatiquement pour vous
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+
+  // identifiant du type d'objet
+  // FK sur la clé primaire du TypeTodo de cet objet
+  int32 type_id = 2 [(google.api.field_behavior) = REQUIRED];
+
+  // nom de cet objet
+  string name = 3 [(google.api.field_behavior) = REQUIRED];
+
+  // description
+  string description = 4;
+
+  // commentaire
+  string comment = 5;
+
+  // identifiant numérique externe
+  int32 external_id = 6;
+
+  // référence externe
+  string external_ref = 7;
+
+  // date de construction
+  google.protobuf.Timestamp build_at = 8;
+
+  // Status (e.g. "Planifié", "En Construction", "Utilisé", "Abandonné", "Démoli")
+  string status = 9;
+
+  // contenu par (UUID)
+  string contained_by = 10;
+
+  int32 contained_by_old = 11;
+
+  // inactivé?
+  bool inactivated = 12 [(google.api.field_behavior) = REQUIRED];
+
+  // date d'inactivation
+  google.protobuf.Timestamp inactivated_time = 13;
+
+  // utilisateur ayant désactivé
+  int32 inactivated_by = 14;
+
+  // raison de'inactivation
+  string inactivated_reason = 15;
+
+  // validé?
+  bool validated = 16;
+
+  // date de validation
+  google.protobuf.Timestamp validated_time = 17;
+
+  // utiliateur ayant validé
+  int32 validated_by = 18;
+
+  // utilisateur/groupe manager
+  int32 managed_by = 19;
+
+  // date création
+  // date de création de cet enregistrement dans la base
+  google.protobuf.Timestamp created_at = 20 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // utilisateur ayant créé cet enregistrement
+  // identifiant de l'utilisateur ayant créé cet enregistrement
+  int32 created_by = 21 [(google.api.field_behavior) = REQUIRED];
+
+  // date modification
+  // date de la dernière modication de cet enregistrement
+  google.protobuf.Timestamp last_modified_at = 22 [(google.api.field_behavior) = OUTPUT_ONLY];
+
+  // utilisateur ayant effectué la modification
+  // utilisateur ayant effectué la dernière modication de cet enregistrement
+  int32 last_modified_by = 23;
+
+  // effacé?
+  // cet enregisrement a été marqué comme effacé
+  bool deleted = 24 [(google.api.field_behavior) = REQUIRED];
+
+  // date effacé
+  // date à laquelle cet enregisrement a été marqué comme effacé
+  google.protobuf.Timestamp deleted_at = 25;
+
+  // utilisateur ayant effacé
+  // utilisateur ayant demandé de marquer cet enregisrement comme effacé
+  int32 deleted_by = 26;
+
+  // Informations complémentaires
+  // permet de stocker des attributs complémentaires au format json
+  google.protobuf.Struct more_data = 27;
+
+  // Coordonnées X de cet objet
+  double pos_x = 28 [(google.api.field_behavior) = REQUIRED];
+
+  // Coordonnées Y de cet objet
+  double pos_y = 29 [(google.api.field_behavior) = REQUIRED];
+}
+
+// A light version of Todo for lists
+message TodoList {
+  string id = 1;
+  int32 type_id = 2;
+  string name = 3;
+  string description = 4;
+  int32 external_id = 5;
+  bool inactivated = 6;
+  bool validated = 7;
+  string status = 8;
+  int32 created_by = 9;
+  google.protobuf.Timestamp created_at = 10;
+  double pos_x = 11;
+  double pos_y = 12;
+}
+
+
+// =========================================================
+// Requests & Responses
+// =========================================================
+
+message ListRequest {
+  // maximum number of results to return
+  int32 limit = 1;
+  // offset rows to skip before returning rows
+  int32 offset = 2;
+  // TypeTodo id to filter by the todos to return
+  int32 type = 3;
+  // id of the creator to filter by the todos to return
+  int32 created_by = 4;
+  // inactivated flag to filter the todos to return
+  bool inactivated = 5;
+  // validation flag to filter the todos to return
+  bool validated = 6;
+}
+
+message ListResponse {
+  repeated TodoList todos = 1;
+}
+
+message CreateRequest {
+  // Todo to add
+  Todo todo = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message CreateResponse {
+  Todo todo = 1;
+}
+
+message GetRequest {
+  // Id of the todo
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message GetResponse {
+  Todo todo = 1;
+}
+
+message UpdateRequest {
+  // Id of the todo
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+  // informations related to the todo
+  Todo todo = 2 [(google.api.field_behavior) = REQUIRED];
+}
+
+message UpdateResponse {
+  Todo todo = 1;
+}
+
+message DeleteRequest {
+  // Id of the todo
+  string id = 1 [(google.api.field_behavior) = REQUIRED];
+}
+
+message DeleteResponse {
+  // Empty, maps to 204 No Content typically
+}
+
+message SearchRequest {
+  // text keywords to filter the todos to return
+  string keywords = 1;
+  int32 limit = 2;
+  int32 offset = 3;
+  int32 type = 4;
+  int32 created_by = 5;
+  bool inactivated = 6;
+  bool validated = 7;
+}
+
+message SearchResponse {
+  repeated TodoList todos = 1;
+}
+
+message CountRequest {
+  string keywords = 1;
+  int32 type = 2;
+  int32 created_by = 3;
+  bool inactivated = 4;
+  bool validated = 5;
+}
+
+message CountResponse {
+  int32 count = 1;
+}
+
+message GeoJsonRequest {
+  int32 limit = 1;
+  int32 offset = 2;
+  int32 type = 3;
+  int32 created_by = 4;
+  bool inactivated = 5;
+  bool validated = 6;
+}
+
+message GeoJsonResponse {
+  // Returns the geoJson of the todo selected by the givven parameters
+  string result = 1;
+}
+
+message ListByExternalIdRequest {
+  // externalId of the todos needed
+  int32 external_id = 1 [(google.api.field_behavior) = REQUIRED];
+  int32 limit = 2;
+  int32 offset = 3;
+}
+
+message ListByExternalIdResponse {
+  repeated TodoList todos = 1;
+}
