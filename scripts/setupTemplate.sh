@@ -50,25 +50,40 @@ read -p "Continue with these values? (y/n): " confirm
 [[ "$confirm" =~ ^[yY]$ ]] || { echo "Aborted."; exit 0; }
 
 # Step 1: Rename directories and files
-echo "Renaming cmd directories and files..."
-mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer.go ./cmd/template4YourProjectNameServer/"$APP_BINARY"Server.go
-mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer_test.go ./cmd/template4YourProjectNameServer/"$APP_BINARY"Server_test.go
-mv ./cmd/template4YourProjectNameServer/template4YourProjectNameFront ./cmd/template4YourProjectNameServer/"$APP_BINARY"Front
-mv ./cmd/template4YourProjectNameServer ./cmd/"$APP_BINARY"Server
-echo "Renaming pkg directories and files..."
-mv ./pkg/template4gopackage "./pkg/${APP_GO_PACKAGE}"
-echo "Renaming api/proto directories and files..."
-mv ./api/proto/template_4_your_project_name/v1/template_4_your_project_name.proto  "./api/proto/template_4_your_project_name/v1/$APP_GO_PACKAGE.proto"
-mv ./api/proto/template_4_your_project_name/ "./api/proto/$APP_GO_PACKAGE"
+if [[ -f "./cmd/template4YourProjectNameServer" ]]; then
+  echo "Renaming cmd directories and files..."
+  git mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer.go ./cmd/template4YourProjectNameServer/"$APP_BINARY"Server.go
+  git mv ./cmd/template4YourProjectNameServer/template4YourProjectNameServer_test.go ./cmd/template4YourProjectNameServer/"$APP_BINARY"Server_test.go
+  git mv ./cmd/template4YourProjectNameServer/template4YourProjectNameFront ./cmd/template4YourProjectNameServer/"$APP_BINARY"Front
+  git mv ./cmd/template4YourProjectNameServer ./cmd/"$APP_BINARY"Server
+fi
+if [[ -f "./pkg/template4gopackage" ]]; then
+  echo "Renaming pkg directories and files..."
+  git mv ./pkg/template4gopackage "./pkg/${APP_GO_PACKAGE}"
+fi
+if [[ -f "./pkg/template4gopackage" ]]; then
+  echo "Renaming api/proto directories and files..."
+  git mv ./api/proto/template_4_your_project_name/v1/template_4_your_project_name.proto  "./api/proto/template_4_your_project_name/v1/$APP_GO_PACKAGE.proto"
+  git mv ./api/proto/template_4_your_project_name/ "./api/proto/$APP_GO_PACKAGE"
+fi
 
 
 # Step 2: String replacements (safe delimiter |)
 echo "Replacing strings in files..."
+SED_INPLACE=(-i)
+
+if sed --version >/dev/null 2>&1; then
+  # GNU sed (Linux)
+  SED_INPLACE=(-i)
+else
+  # BSD sed (macOS)
+  SED_INPLACE=(-i '')
+fi
 
 find . -type f \
-  \( -name '*.go'  -name 'go.mod' -o -name '*.yaml' -o -name '*.yml' -o -name '*.proto' -o -name 'Dockerfile' -o -name 'Makefile' -o -name '*.md' -o -wholename 'scripts/buf_generate.sh' -o -name '*.env*' -o -name '*.sql' \) \
+  \( -name '*.go' -o -name 'go.mod' -o -name '*.yaml' -o -name '*.yml' -o -name '*.proto' -o -name 'Dockerfile' -o -name 'Makefile' -o -name '*.md' -o -wholename 'scripts/buf_generate.sh' -o -name '*.env*' -o -name '*.sql' \) \
   ! -path './.git/*' ! -path './gen/*' \
-  -print0 | xargs -0 sed -i '' \
+  -print0 | xargs -0 sed "${SED_INPLACE[@]}" \
     -e "s|template4YourProjectNameServer|$APP_BINARY|g" \
     -e "s|github.com/your-github-account/template-4-your-project-name|$REPOSITORY|g" \
     -e "s|template4gopackage|$APP_GO_PACKAGE|g" \

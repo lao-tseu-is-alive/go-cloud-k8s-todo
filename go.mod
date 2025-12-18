@@ -1,4 +1,4 @@
-module github.com/your-github-account/template-4-your-project-name
+module github.com/lao-tseu-is-alive/go-cloud-k8s-todo
 
 go 1.25.5
 
