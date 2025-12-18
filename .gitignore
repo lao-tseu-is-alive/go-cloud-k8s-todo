@@ -11,35 +11,18 @@
 # Output of the go coverage tool, specifically when used with LiteIDE
 #*.out
 .coverage.out
-___template4YourProjectNameServer_test_go.test
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
 /.env
-/template4YourProjectName.conf
 .idea
 /openapitools.json
 /coverage.out
 /.env_testing
-/template_4_your_project_name_testing.conf
-/postgRest/template_4_your_project_name_postgrest.conf
-/documentation/design+microservices+v2.pdf
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/openapitools.json
-/cmd/template4YourProjectNameServer/typescript-axios-client-generated.zip
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/graphics/Google_Maps_pin.svg
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/graphics/Googlemap.svg
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/graphics/map-marker-pin-3d.svg
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/graphics/Map-Warning-Icon.svg
-/cmd/template4YourProjectNameServer/openapitools.json
-.env_template_4_your_project_name
-/deployments/go-testing/myLocalConfigMap.yaml
-/deployments/go-testing/soiConfigMap.yaml
-/bin/template4YourProjectNameServer
+/*.conf
 /.env-testing-export
 /.env_for_github.txt
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/old/oldLogin_to_delete.ts
 /bin/server
-/cmd/template4YourProjectNameServer/template4YourProjectNameFront/node_modules*
 **/node_modules
 proto_third_party/*
 /coverage.txt
